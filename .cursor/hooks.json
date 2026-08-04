@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node .cursor/hooks/session-start.js"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node .cursor/hooks/before-submit-prompt.js"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node .cursor/hooks/after-read-search.js",
+        "matcher": "Read|Grep|Glob"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "node .cursor/hooks/pre-write-search.js",
+        "matcher": "Write|Edit"
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "node .cursor/hooks/pre-agent-cap.js"
+      }
+    ],
+    "stop": [
+      {
+        "command": "node .cursor/hooks/stop.js"
+      }
+    ]
+  }
+}
