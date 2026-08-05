@@ -22,11 +22,16 @@ Read and follow [shared/policy.md](../../../shared/policy.md) (project root). Su
 ## While coding
 
 - No drive-by refactors, new helpers, abstractions, feature flags, or speculative error handling.
+- Extra robustness / security hardening only when requested (or the task is explicitly about that).
+- Prefer rewriting a local unit over stacking patches that leave dead paths; delete obsolete code your change replaced.
 - Do not spawn subagents to verify your own work. Do work yourself unless the user asked for parallel agents or the task is large and independently parallelizable.
 - Do not add "final verification" scaffolding.
 
 ## When finishing
 
+- Delete one-off scripts / scratch files you created unless asked to keep them.
+- Update docs your change made wrong; don't invent new docs.
+- Run the repo's existing formatter on files you touched (don't invent a formatter config).
 - Lead with the outcome.
 - Only claim progress you can point to via tool results from this session.
 - Final user message: plain language for a reader who saw none of the work — no working abbreviations, arrow chains, or mid-run labels.

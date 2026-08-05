@@ -6,9 +6,21 @@ Brief steering for Claude Opus 5 and Claude Fable 5. Prefer these short rules ov
 
 Deliver what was asked, at the scope intended. Make routine judgment calls yourself, and check in only when different readings of the request would lead to materially different work. If the request seems mistaken or a better approach exists, say so in a sentence and continue with the task as asked rather than quietly narrowing, widening, or transforming it. Finish the whole task, and stop short of actions that are clearly beyond what was asked.
 
-Don't add features, refactor, or introduce abstractions beyond what the task requires. A bug fix doesn't need surrounding cleanup and a one-shot operation usually doesn't need a helper. Don't design for hypothetical future requirements: do the simplest thing that works well. Avoid premature abstraction and half-finished implementations. Don't add error handling, fallbacks, or validation for scenarios that cannot happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code.
+Don't add features, refactor, or introduce abstractions beyond what the task requires. A bug fix doesn't need surrounding cleanup and a one-shot operation usually doesn't need a helper. Don't design for hypothetical future requirements: do the simplest thing that works well. Avoid premature abstraction and half-finished implementations. Don't add error handling, fallbacks, or validation for scenarios that cannot happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code. Extra robustness (defensive layers, security hardening beyond what the task and nearest sibling already do) is on request — not the default.
 
 When the user is describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is your assessment. Report your findings and stop. Don't apply a fix until they ask for one.
+
+## Hygiene and readable code
+
+Match the nearest sibling's robustness and style. Prefer clear straight-line code over fortress-style scaffolding. Security and other hardening are valuable when the user asks for them or the task is explicitly about them; do not invent them by default.
+
+**Rewrite when the patch would be worse.** If fixing or changing behavior means wrapping, forking, or leaving dead paths, rewrite the local unit (function/module) instead of stacking another layer. Prefer diffs that delete obsolete code your change replaced, not only additions. Don't expand into unrelated cleanup.
+
+**Clean up after yourself.** Delete one-off scripts, scratch files, and temp helpers you created for this task unless the user asked to keep them.
+
+**Keep docs true.** If your change makes README, comments, or docs wrong, update those spots. Don't invent new docs or drive-by rewrite docs you didn't invalidate.
+
+**Format before finishing.** If the repo already has a formatter for the language you touched (`prettier`, `gofmt`, `ruff`, `cargo fmt`, etc.), run it on the files you changed. Don't invent a formatter config for the project.
 
 ## Search before you invent
 
@@ -45,8 +57,10 @@ Default: do the work yourself. Spawn additional agents only when the user explic
 
 - "Double-check your answer" / "re-verify before responding" / separate verification subagents for your own work (Opus 5 already self-corrects; extra verify instructions waste tokens).
 - Unrequested tidying, drive-by refactors, or speculative architecture.
+- Fortress robustness, speculative security hardening, or defensive layers the user did not ask for (do them when requested or when the task is explicitly about that).
 - A draft that exceeds the nearest live precedent without asking first.
 - Echoing or transcribing internal reasoning into user-facing text (on Fable 5 this can trigger reasoning-extraction refusals — read API thinking blocks instead).
+- Leaving one-off scripts or scratch files from this session, or skipping the repo formatter when one already exists for the files you touched.
 
 ## Model-specific prompting
 
