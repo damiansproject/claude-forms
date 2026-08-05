@@ -16,6 +16,7 @@ Read and follow [shared/policy.md](../../../shared/policy.md) (project root). Su
 1. Restate the asked scope in one sentence (internally). Do not widen it.
 2. Search the repo (`Grep` / `Glob` / `Read`) for existing code that already does the job.
 3. Prefer the smallest change that satisfies the request.
+4. If mirroring an existing pattern, open the nearest sibling and stay near its complexity. If the draft would exceed it (modes, schema, layers), stop and ask — do not write the fat file first.
 
 ## While coding
 
@@ -28,3 +29,8 @@ Read and follow [shared/policy.md](../../../shared/policy.md) (project root). Su
 - Lead with the outcome.
 - Only claim progress you can point to via tool results from this session.
 - Stop when the ask is done.
+
+## See also
+
+- `prompt-opus-5` — verbosity, narration, Opus-specific scaffolding ([guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5))
+- `prompt-fable-5` — long runs, autonomy, memory ([guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5))

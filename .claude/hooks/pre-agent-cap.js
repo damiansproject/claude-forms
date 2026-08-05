@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, claudeDeny, claudeAllow, sessionId } = require('../../shared/io');
+const { readStdin, parseInput, claudeDeny, claudeContext, sessionId } = require('../../shared/io');
 const { handlePreAgent } = require('../../shared/handlers');
 
 readStdin()
@@ -13,7 +13,7 @@ readStdin()
       return;
     }
     if (result.warn) {
-      claudeAllow(result.warn, result.warn);
+      claudeContext('PreToolUse', result.warn); // context only, no permissionDecision
       return;
     }
     // allow silently

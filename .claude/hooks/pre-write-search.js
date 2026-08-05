@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, claudeAllow, sessionId, filePathFromTool } = require('../../shared/io');
+const { readStdin, parseInput, claudeDeny, claudeContext, sessionId, filePathFromTool } = require('../../shared/io');
 const { handlePreWrite } = require('../../shared/handlers');
 
 readStdin()
@@ -9,10 +9,13 @@ readStdin()
     const input = parseInput(raw);
     const toolName = input.tool_name || input.toolName || '';
     const filePath = filePathFromTool(input);
-    const { context } = handlePreWrite(sessionId(input), toolName, filePath);
-    if (context) {
-      claudeAllow(context);
+    const { context, deny } = handlePreWrite(sessionId(input), toolName, filePath);
+    if (deny) {
+      claudeDeny(context);
+      return;
     }
-    // Soft warn only: exit 0 with no JSON also fine
+    if (context) {
+      claudeContext('PreToolUse', context);
+    }
   })
   .catch(() => process.exit(0));

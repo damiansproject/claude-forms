@@ -7,7 +7,7 @@ const { handleSessionStart } = require('../../shared/handlers');
 readStdin()
   .then((raw) => {
     const input = parseInput(raw);
-    const { context } = handleSessionStart(sessionId(input));
+    const { context } = handleSessionStart(sessionId(input), input.source);
     if (context) {
       claudeContext('SessionStart', context);
     }

@@ -18,7 +18,7 @@ function statePath(sessionId) {
 }
 
 /**
- * @returns {{ allowParallel: boolean, readCount: number, agentCount: number, promptAgentCount: number, lastPromptId: string|null }}
+ * @returns {{ allowParallel: boolean, readCount: number, agentCount: number, promptAgentCount: number, lastPromptId: string|null, stopReminded: boolean }}
  */
 function defaultState() {
   return {
@@ -27,6 +27,7 @@ function defaultState() {
     agentCount: 0,
     promptAgentCount: 0,
     lastPromptId: null,
+    stopReminded: false,
   };
 }
 

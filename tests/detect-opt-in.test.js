@@ -17,9 +17,23 @@ describe('detectOptIn', () => {
     assert.equal(detectOptIn('run these in parallel'), true);
     assert.equal(detectOptIn('allow parallel agents'), true);
     assert.equal(detectOptIn('fan out the investigation'), true);
-    assert.equal(detectOptIn('delegate the research'), true);
+    assert.equal(detectOptIn('delegate this to another agent'), true);
     assert.equal(detectOptIn('go do it end to end'), true);
-    assert.equal(detectOptIn('work autonomous on this'), true);
+    assert.equal(detectOptIn('work autonomously on this'), true);
     assert.equal(detectOptIn('Use Agents to explore'), true);
+    assert.equal(detectOptIn('use 3 agents to split the audit'), true);
+    assert.equal(detectOptIn('spawn agents for each module'), true);
+    assert.equal(detectOptIn('use multiple agents'), true);
+  });
+
+  it('ignores coding asks that merely contain ambiguous words', () => {
+    assert.equal(detectOptIn('add an end to end test for login'), false);
+    assert.equal(detectOptIn('parallelize the test suite'), false);
+    assert.equal(detectOptIn('make the fetch calls parallel'), false);
+    assert.equal(detectOptIn('implement the delegate pattern here'), false);
+    assert.equal(detectOptIn('add a delegate to the view controller'), false);
+    assert.equal(detectOptIn('fix the autonomous driving module'), false);
+    assert.equal(detectOptIn('set the user agent header'), false);
+    assert.equal(detectOptIn('the CI workflow is failing'), false);
   });
 });

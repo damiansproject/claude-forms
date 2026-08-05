@@ -18,6 +18,7 @@ describe('pre-agent budget', () => {
     process.env.CLAUDE_FORM_PARALLEL_BUDGET = '8';
     delete process.env.CLAUDE_FORM_ALLOW_PARALLEL;
     delete process.env.CLAUDE_FORM_DISABLED;
+    delete process.env.CLAUDE_FORM_STRICT_SEARCH;
     fs.rmSync(STATE_DIR, { recursive: true, force: true });
     delete require.cache[require.resolve('../shared/session-state')];
     delete require.cache[require.resolve('../shared/handlers')];
@@ -59,16 +60,49 @@ describe('pre-agent budget', () => {
     const w = handlers.handlePreWrite('agent-test', 'Write', missing);
     assert.ok(w.context);
     assert.match(w.context, /Search the repo/i);
+    assert.equal(w.deny, false);
 
     handlers.handleTrackRead('agent-test');
     const after = handlers.handlePreWrite('agent-test', 'Write', missing);
     assert.equal(after.context, null);
 
-    const edit = handlers.handlePreWrite('agent-test', 'Edit', missing);
     // Edit never warns even at zero reads — reset and check
     handlers.handleSessionStart('edit-test');
     const editWarn = handlers.handlePreWrite('edit-test', 'Edit', missing);
     assert.equal(editWarn.context, null);
+  });
+
+  it('strict mode denies new Write with zero reads', () => {
+    process.env.CLAUDE_FORM_STRICT_SEARCH = '1';
+    const missing = path.join(STATE_DIR, 'brand-new-file.js');
+    const w = handlers.handlePreWrite('agent-test', 'Write', missing);
+    assert.equal(w.deny, true);
+    assert.match(w.context, /Blocked/i);
+
+    handlers.handleTrackRead('agent-test');
+    const after = handlers.handlePreWrite('agent-test', 'Write', missing);
+    assert.equal(after.deny, false);
+    assert.equal(after.context, null);
+  });
+
+  it('preserves opt-in across compact/resume, resets on startup', () => {
+    handlers.handleUserPrompt('agent-test', 'use subagents please', 'p1');
+    assert.equal(state.loadState('agent-test').allowParallel, true);
+
+    handlers.handleSessionStart('agent-test', 'compact');
+    assert.equal(state.loadState('agent-test').allowParallel, true);
+    handlers.handleSessionStart('agent-test', 'resume');
+    assert.equal(state.loadState('agent-test').allowParallel, true);
+
+    handlers.handleSessionStart('agent-test', 'startup');
+    assert.equal(state.loadState('agent-test').allowParallel, false);
+  });
+
+  it('stop reminder fires once per session', () => {
+    const first = handlers.handleStop('agent-test');
+    assert.ok(first.context);
+    const second = handlers.handleStop('agent-test');
+    assert.equal(second.context, null);
   });
 
   it('respects CLAUDE_FORM_DISABLED', () => {

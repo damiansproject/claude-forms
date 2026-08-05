@@ -12,6 +12,8 @@ Deliver only what was asked. Do not widen scope, refactor adjacently, or invent 
 
 Before creating new files or utilities, search the repo (`Grep`/`Glob`/`Read`) and extend existing code when it fits.
 
+When extending an existing pattern, match the nearest live sibling. If the draft would exceed it in modes, schema, or layers — including docs and "not wired yet" contracts — stop, state the smallest matching slice, and ask before doing more.
+
 Default: do the work yourself. Do not spawn subagents to verify your own work. Extra agents only for large independent parallel tracks or when the user explicitly opts in.
 
 Lead with the outcome. Claim only work evidenced by tool results from this session.

@@ -4,17 +4,19 @@
  * Detect whether the user explicitly opted into parallel / subagent work.
  */
 
+// Agent/parallel phrases only — bare "parallel", "delegate", etc. false-positive on normal asks.
 const OPT_IN_PATTERNS = [
-  /\ballow\s+parallel\s+agents?\b/i,
+  /\bparallel\s+agents?\b/i,
+  /\bagents?\s+in\s+parallel\b/i,
   /\bin\s+parallel\b/i,
-  /\bparallel\b/i,
   /\bsub-?agents?\b/i,
-  /\bdelegate\b/i,
-  /\bfan\s*out\b/i,
-  /\buse\s+agents?\b/i,
+  /\buse\s+(?:\w+\s+)?agents?\b/i,
+  /\bspawn\s+(?:\w+\s+)?agents?\b/i,
+  /\b(?:multiple|many|several)\s+agents?\b/i,
+  /\bfan\s*-?\s*out\b/i,
+  /\bdelegate\s+(?:this|that|it|everything)\b/i,
+  /\bautonomously\b/i,
   /\bgo\s+do\b/i,
-  /\bend\s+to\s+end\b/i,
-  /\bautonomous\b/i,
 ];
 
 /**

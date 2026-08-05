@@ -27,11 +27,6 @@
       {
         "command": "node .cursor/hooks/pre-agent-cap.js"
       }
-    ],
-    "stop": [
-      {
-        "command": "node .cursor/hooks/stop.js"
-      }
     ]
   }
 }

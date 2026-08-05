@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, cursorDeny, cursorAllow, sessionId } = require('../../shared/io');
+const { readStdin, parseInput, writeJson, cursorDeny, sessionId } = require('../../shared/io');
 const { handlePreAgent } = require('../../shared/handlers');
 
 readStdin()
@@ -13,12 +13,12 @@ readStdin()
       return;
     }
     if (result.warn) {
-      cursorAllow({ agent_message: result.warn });
+      writeJson({ user_message: result.warn });
       return;
     }
-    cursorAllow();
+    writeJson({});
   })
   .catch(() => {
-    process.stdout.write(JSON.stringify({ permission: 'allow' }));
+    writeJson({});
     process.exit(0);
   });

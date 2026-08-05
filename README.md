@@ -11,24 +11,35 @@ Policy sources: [Prompting Claude Opus 5](https://platform.claude.com/docs/en/bu
 | Failure mode | Soft | Hard |
 |---|---|---|
 | Over-scoping / unrequested refactors | Session + prompt reminders | — |
-| Reinvent / ignore existing code | Search-before-write skill + warn on new `Write` with zero reads | — (warn only) |
-| Hallucinated progress | Stop / finish reminder | — |
-| Subagent cost explosion | Warn at last slot | Deny Agent/Task past budget unless user opts in |
+| In-scope overbuild (exceeds live precedent) | Ask-before-escalate checkpoint (policy, skills, session inject) | — |
+| Reinvent / ignore existing code | Search-before-write skill + warn on new `Write` with zero reads | Optional deny (`CLAUDE_FORM_STRICT_SEARCH=1`) |
+| Hallucinated progress | Stop / finish reminder (once per session) | — |
+| Subagent cost explosion | Warn at last slot | Deny Agent/Task/Workflow past budget unless user opts in |
 
-**Default agent budget:** `1` per user prompt. Opt-in phrases unlock a higher budget (default `8`): `parallel`, `subagent(s)`, `delegate`, `fan out`, `use agents`, `in parallel`, `go do`, `end to end`, `autonomous`, `allow parallel agents`.
+**Default agent budget:** `1` per user prompt. Opt-in phrases unlock a higher budget (default `8`): `subagent(s)`, `parallel agents`, `in parallel`, `use/spawn … agents`, `multiple agents`, `fan out`, `delegate this/it`, `autonomously`, `go do`. Bare `parallel`, `delegate`, `autonomous`, and `end to end` intentionally do **not** opt in — they show up in ordinary coding asks ("add an end to end test", "implement the delegate pattern").
 
-Opt-in persists for the rest of the session.
+Opt-in persists for the rest of the session, including across compaction and resume.
 
 ## Layout
 
 ```
 claude-forms/
-  shared/                 # policy + session state + handlers
-  .claude/                # Claude Code settings, rules, skill, hooks
-  .cursor/                # Cursor hooks.json, rules, skill, hooks
-  templates/CLAUDE.md.snippet
+  shared/                 # policy, prompt-opus/fable refs, session state, handlers
+  .claude/                # Claude Code settings, rules, skills, hooks
+  .cursor/                # Cursor hooks.json, rules, skills, hooks
+  templates/              # CLAUDE.md.snippet, LESSONS.md.snippet
   tests/
 ```
+
+## Skills
+
+| Skill | When to use |
+|---|---|
+| `no-overengineer` | Scope, search-before-invent, delegation limits (always-on rule mirrors this) |
+| `prompt-opus-5` | Tune Opus verbosity, narration, deliverable length, subagent guidance |
+| `prompt-fable-5` | Long runs, autonomy, memory, readability, async `send_to_user` |
+
+Shared reference text (copy into `CLAUDE.md` or read via skills): `shared/prompt-opus.md`, `shared/prompt-fable.md`.
 
 ## Install
 
@@ -37,14 +48,34 @@ claude-forms/
 Copy into a target repo (keep `shared/` next to `.claude/` and `.cursor/`):
 
 ```bash
-rsync -a shared .claude .cursor templates/CLAUDE.md.snippet /path/to/project/
+rsync -a shared .claude .cursor templates/ /path/to/project/
 # optional: append templates/CLAUDE.md.snippet into the project's CLAUDE.md
+# optional: copy templates/LESSONS.md.snippet → LESSONS.md for Fable long-run memory
 ```
 
-### Personal (user-level)
+### System-wide (all projects)
 
-- Claude Code: copy `.claude/rules/no-overengineer.md` → `~/.claude/rules/`, skill → `~/.claude/skills/no-overengineer/`, and merge hooks from `.claude/settings.json` into `~/.claude/settings.json` (adjust paths to an absolute install of `shared/`).
-- Cursor: copy `.cursor/rules/no-overengineer.mdc` and `.cursor/skills/no-overengineer/`, merge `.cursor/hooks.json` (paths assume project-root `shared/`).
+Install once; hooks, rules, and skills apply everywhere. Merges with your existing Claude/Cursor hook config (does not remove other hooks).
+
+```bash
+cd /path/to/claude-forms
+npm run install:user
+```
+
+Default install root: `~/.local/share/claude-forms`. Override with `CLAUDE_FORM_INSTALL_DIR`.
+
+Installs:
+- Runtime (`shared/`, hooks) → install root
+- `~/.claude/settings.json` — hooks merged
+- `~/.cursor/hooks.json` — hooks merged
+- `~/.claude/rules/`, `~/.cursor/rules/` — `no-overengineer`
+- `~/.claude/skills/`, `~/.cursor/skills/` — all claude-forms skills (paths patched)
+
+Re-run after upgrading claude-forms. If a project also has a project-level copy, hooks may run twice — use `CLAUDE_FORM_DISABLED=1` in that project or remove the project drop-in.
+
+### Personal (manual)
+
+Same as system-wide but by hand: copy rules/skills, merge hooks with absolute paths to your install root (see `scripts/install-user.js`).
 
 ## Environment overrides
 
@@ -54,7 +85,13 @@ rsync -a shared .claude .cursor templates/CLAUDE.md.snippet /path/to/project/
 | `CLAUDE_FORM_ALLOW_PARALLEL=1` | Session starts with parallel agents allowed |
 | `CLAUDE_FORM_AGENT_BUDGET` | Per-prompt agent budget when not opted in (default `1`) |
 | `CLAUDE_FORM_PARALLEL_BUDGET` | Budget when opted in (default `8`) |
+| `CLAUDE_FORM_STRICT_SEARCH=1` | Deny (instead of warn on) new-file writes with zero Read/Grep/Glob in the session |
 | `CLAUDE_FORM_STATE_DIR` | Override `/tmp/claude-forms` state directory |
+
+## Platform notes
+
+- **Claude Code:** warn paths inject `additionalContext` only — they never set `permissionDecision`, so your normal permission prompts are untouched. Session state survives `compact`/`resume`/`fork` (SessionStart `source`) and the policy summary is re-injected after compaction.
+- **Cursor:** state is keyed by `conversation_id`. `beforeSubmitPrompt` can't inject agent-visible context (the always-apply rule carries the policy); opt-in detection surfaces as a `user_message`. There is no stop hook — Cursor's `stop` event only supports `followup_message`, which would force an extra agent turn.
 
 ## Tests
 
@@ -68,5 +105,4 @@ This package lives at `claude-forms`. If you still have a checkout named `claude
 
 ## v2 ideas
 
-- Memory/lessons file pattern (Fable)
-- Optional stricter search-before-write deny mode
+- Optional stricter defaults for search-before-write

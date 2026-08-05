@@ -53,21 +53,6 @@ function claudeDeny(reason, additionalContext) {
 }
 
 /**
- * Claude Code PreToolUse allow + optional context.
- * @param {string} [additionalContext]
- * @param {string} [reason]
- */
-function claudeAllow(additionalContext, reason) {
-  const hso = {
-    hookEventName: 'PreToolUse',
-    permissionDecision: 'allow',
-  };
-  if (reason) hso.permissionDecisionReason = reason;
-  if (additionalContext) hso.additionalContext = additionalContext;
-  writeJson({ hookSpecificOutput: hso });
-}
-
-/**
  * Claude Code context-only (SessionStart, UserPromptSubmit, PostToolUse, Stop).
  * @param {string} eventName
  * @param {string} additionalContext
@@ -97,23 +82,18 @@ function cursorDeny(reason) {
 }
 
 /**
- * Cursor allow with optional agent message / context.
- * @param {object} opts
- */
-function cursorAllow(opts = {}) {
-  const out = { permission: 'allow' };
-  if (opts.agent_message) out.agent_message = opts.agent_message;
-  if (opts.user_message) out.user_message = opts.user_message;
-  if (opts.additional_context) out.additional_context = opts.additional_context;
-  writeJson(out);
-}
-
-/**
+ * Claude Code sends session_id; Cursor sends conversation_id (stable across turns).
  * @param {object} input
  * @returns {string}
  */
 function sessionId(input) {
-  return input.session_id || input.sessionId || process.env.CLAUDE_FORM_SESSION_ID || 'default';
+  return (
+    input.session_id ||
+    input.sessionId ||
+    input.conversation_id ||
+    process.env.CLAUDE_FORM_SESSION_ID ||
+    'default'
+  );
 }
 
 /**
@@ -130,10 +110,8 @@ module.exports = {
   parseInput,
   writeJson,
   claudeDeny,
-  claudeAllow,
   claudeContext,
   cursorDeny,
-  cursorAllow,
   sessionId,
   filePathFromTool,
 };

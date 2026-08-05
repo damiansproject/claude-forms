@@ -13,7 +13,7 @@ const os = require('os');
 const ROOT = path.join(__dirname, '..');
 const STATE_DIR = path.join(os.tmpdir(), `claude-forms-smoke-${process.pid}`);
 
-function runHook(rel, input) {
+function runHook(rel, input, extraEnv = {}) {
   const result = spawnSync('node', [path.join(ROOT, rel)], {
     input: JSON.stringify(input),
     encoding: 'utf8',
@@ -21,6 +21,7 @@ function runHook(rel, input) {
       ...process.env,
       CLAUDE_FORM_STATE_DIR: STATE_DIR,
       CLAUDE_FORM_AGENT_BUDGET: '1',
+      ...extraEnv,
     },
   });
   return result;
@@ -77,22 +78,44 @@ console.log('Smoke: Claude Code hooks');
     tool_input: { file_path: path.join(STATE_DIR, 'new.js'), content: 'x' },
   });
   check('write warn without reads', /Search the repo|claude-forms/i.test(r.stdout), r.stdout);
+  check(
+    'write warn does not grant permission',
+    !/permissionDecision/.test(r.stdout),
+    r.stdout
+  );
+
+  r = runHook(
+    '.claude/hooks/pre-write-search.js',
+    {
+      session_id: 'smoke-strict',
+      tool_name: 'Write',
+      tool_input: { file_path: path.join(STATE_DIR, 'new2.js'), content: 'x' },
+    },
+    { CLAUDE_FORM_STRICT_SEARCH: '1' }
+  );
+  check('strict mode denies write without reads', /"permissionDecision":"deny"/.test(r.stdout), r.stdout);
+
+  r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
+  check('first stop shows reminder', /systemMessage/.test(r.stdout), r.stdout);
+  r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
+  check('second stop is silent', r.stdout.trim() === '', r.stdout);
 }
 
 console.log('Smoke: Cursor hooks');
 {
-  const sid = 'smoke-cursor';
-  let r = runHook('.cursor/hooks/session-start.js', { session_id: sid });
+  // Cursor payloads carry conversation_id, not session_id.
+  const cid = 'smoke-cursor';
+  let r = runHook('.cursor/hooks/session-start.js', { conversation_id: cid });
   check('cursor session-start', r.status === 0 && /claude-forms/.test(r.stdout), r.stdout);
 
   r = runHook('.cursor/hooks/before-submit-prompt.js', {
-    session_id: sid,
+    conversation_id: cid,
     prompt: 'use subagents please',
   });
   check('cursor opt-in prompt', r.status === 0 && /Parallel agents enabled/i.test(r.stdout), r.stdout);
 
-  r = runHook('.cursor/hooks/pre-agent-cap.js', { session_id: sid });
-  check('cursor agent allow after opt-in', r.status === 0 && /"permission":"allow"/.test(r.stdout), r.stdout);
+  r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid });
+  check('cursor agent allow after opt-in', r.status === 0 && !/deny/i.test(r.stdout), r.stdout);
 }
 
 fs.rmSync(STATE_DIR, { recursive: true, force: true });
