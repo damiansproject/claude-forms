@@ -1,6 +1,6 @@
 'use strict';
 
-// Persistent per-session counters and agent-budget decisions.
+// Persistent per-session counters, duplicate-firing detection, and agent-budget decisions.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -18,6 +18,10 @@ function parseBudget(raw, fallback) {
 const DEFAULT_BUDGET = parseBudget(process.env.CLAUDE_FORM_AGENT_BUDGET, 1);
 const PARALLEL_BUDGET = parseBudget(process.env.CLAUDE_FORM_PARALLEL_BUDGET, 8);
 
+// A project drop-in and the user-level install can both fire hooks for the same
+// event. Firings this close together with the same identity count as one event.
+const DUPLICATE_WINDOW_MS = 10000;
+
 function statePath(sessionId) {
   // Keep state filenames portable: only letters, numbers, dot, underscore, hyphen.
   const safe = String(sessionId || 'default').replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -30,6 +34,11 @@ function defaultState() {
     readCount: 0,
     promptAgentCount: 0,
     lastPromptId: null,
+    lastPromptText: '',
+    lastPromptAt: 0,
+    lastSessionStartAt: 0,
+    lastSessionStartSource: null,
+    lastAgentToolUseId: null,
     stopReminded: false,
   };
 }
@@ -50,6 +59,21 @@ function loadState(sessionId) {
     }
     if (saved.lastPromptId !== undefined) {
       state.lastPromptId = saved.lastPromptId;
+    }
+    if (typeof saved.lastPromptText === 'string') {
+      state.lastPromptText = saved.lastPromptText;
+    }
+    if (typeof saved.lastPromptAt === 'number') {
+      state.lastPromptAt = saved.lastPromptAt;
+    }
+    if (typeof saved.lastSessionStartAt === 'number') {
+      state.lastSessionStartAt = saved.lastSessionStartAt;
+    }
+    if (saved.lastSessionStartSource !== undefined) {
+      state.lastSessionStartSource = saved.lastSessionStartSource;
+    }
+    if (saved.lastAgentToolUseId !== undefined) {
+      state.lastAgentToolUseId = saved.lastAgentToolUseId;
     }
     if (typeof saved.stopReminded === 'boolean') {
       state.stopReminded = saved.stopReminded;
@@ -73,17 +97,39 @@ function resetSession(sessionId) {
 
 function onUserPrompt(sessionId, opts = {}) {
   const state = loadState(sessionId);
+  const now = Date.now();
+
+  // Only a 200-char prefix is stored and compared so huge pasted prompts do not
+  // bloat the state file.
+  const promptPrefix = typeof opts.prompt === 'string' ? opts.prompt.slice(0, 200) : '';
+
+  // Duplicate = a second hook copy firing for the same submission: same prompt
+  // id, or same prompt text within the duplicate window when there is no id.
+  let duplicate = false;
+  if (opts.promptId) {
+    duplicate = opts.promptId === state.lastPromptId;
+  } else if (promptPrefix !== '') {
+    duplicate =
+      promptPrefix === state.lastPromptText && now - state.lastPromptAt < DUPLICATE_WINDOW_MS;
+  }
+
   if (opts.allowParallel) {
     state.allowParallel = true;
   }
-  if (opts.promptId && opts.promptId !== state.lastPromptId) {
-    state.lastPromptId = opts.promptId;
+
+  if (!duplicate) {
+    state.lastPromptId = opts.promptId || null;
+    state.lastPromptText = promptPrefix;
+    state.lastPromptAt = now;
+    // The agent budget, search-before-write requirement, and stop reminder all
+    // apply per user prompt.
     state.promptAgentCount = 0;
-  } else if (!opts.promptId) {
-    state.promptAgentCount = 0;
+    state.readCount = 0;
+    state.stopReminded = false;
   }
+
   saveState(sessionId, state);
-  return state;
+  return { state, duplicate };
 }
 
 function bumpRead(sessionId) {
@@ -93,8 +139,15 @@ function bumpRead(sessionId) {
   return state;
 }
 
-function tryConsumeAgent(sessionId) {
+function tryConsumeAgent(sessionId, toolUseId) {
   const state = loadState(sessionId);
+
+  // A second hook copy firing for a tool call whose slot is already consumed:
+  // allow silently instead of double-counting (or denying) the same call.
+  if (toolUseId && toolUseId === state.lastAgentToolUseId) {
+    return { allowed: true, reason: '', warn: '' };
+  }
+
   let budget = DEFAULT_BUDGET;
   if (state.allowParallel) {
     budget = PARALLEL_BUDGET;
@@ -110,6 +163,9 @@ function tryConsumeAgent(sessionId) {
   }
 
   state.promptAgentCount += 1;
+  if (toolUseId) {
+    state.lastAgentToolUseId = toolUseId;
+  }
   saveState(sessionId, state);
 
   let warn = '';
@@ -128,6 +184,7 @@ function isDisabled() {
 }
 
 module.exports = {
+  DUPLICATE_WINDOW_MS,
   loadState,
   saveState,
   resetSession,

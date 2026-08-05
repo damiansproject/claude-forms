@@ -11,14 +11,16 @@ Model-specific sources: [Prompting Claude Opus 5](https://platform.claude.com/do
 | Failure mode | Soft | Hard |
 |---|---|---|
 | Over-scoping / unrequested refactors | Session + prompt reminders | — |
+| Plan drift (substitutes approach, skips steps of an agreed plan) | Follow-the-agreed-plan section (rule, Opus skill, session/prompt/stop injects) | — |
+| Messy long-run diff (abandoned-approach leftovers, drifted names, debug prints) | Own-diff one-pass rule (rule, Fable skill, stop inject) | — |
 | In-scope overbuild (exceeds live precedent) | Ask-before-escalate checkpoint (policy, skills, session inject) | — |
 | Fortress code / unrequested robustness | Hygiene section (robustness on request); effort guidance | — |
 | Style theater (looks engineered, unearned layers) | Prefer dumb/boring flat code (policy + skill + session inject) | — |
 | Brittle minimal code (bad edges, cast stacks, no tests, prose-in-code) | Craft rules in Hygiene + Stop finish reminder | — |
 | Unreadable structure (no entrypoint mark, helper spam, opaque regex) | Architecture-obvious rules in Hygiene + Stop | — |
 | Patch stacks / leftover one-offs / stale docs / unformatted edits | Hygiene section + Stop finish reminder (always format; add minimal prettier on new JS/TS) | — |
-| Reinvent / ignore existing code | Search-before-write skill + warn on new `Write` with zero reads | Optional deny (`CLAUDE_FORM_STRICT_SEARCH=1`) |
-| Hallucinated progress | Stop / finish reminder (once per session) | — |
+| Reinvent / ignore existing code | Search-before-write skill + warn on new `Write` with zero reads since the last user prompt | Optional deny (`CLAUDE_FORM_STRICT_SEARCH=1`) |
+| Hallucinated progress | Stop / finish reminder (once per user prompt) | — |
 | Subagent cost explosion | Warn at last slot | Deny Agent/Task/Workflow past budget unless user opts in |
 
 **Default agent budget:** `1` per user prompt. Opt-in phrases unlock a higher budget (default `8`): `subagent(s)`, `parallel agents`, `in parallel`, `use/spawn … agents`, `multiple agents`, `fan out`, `delegate this/it`, `autonomously`, `go do`. Bare `parallel`, `delegate`, `autonomous`, and `end to end` intentionally do **not** opt in — they show up in ordinary coding asks ("add an end to end test", "implement the delegate pattern").
@@ -83,7 +85,7 @@ Installs:
 - `~/.claude/rules/`, `~/.cursor/rules/` — `no-overengineer`
 - `~/.claude/skills/`, `~/.cursor/skills/` — all claude-forms skills (paths patched)
 
-Re-run after upgrading claude-forms. If a project also has a project-level copy, hooks may run twice — use `CLAUDE_FORM_DISABLED=1` in that project or remove the project drop-in.
+Re-run after upgrading claude-forms. If a project also has a project-level copy, both hook sets fire for each event; the handlers share session state and treat the second firing as a duplicate, so reminders inject once and (on Claude Code) the agent budget is consumed once per tool call. Dedupe only works when both copies are current — re-run `npm run install:user` after upgrading. `CLAUDE_FORM_DISABLED=1` still turns the harness off entirely in a project.
 
 ```bash
 npm run uninstall:user          # strip hooks/rules/skills; leave install root
@@ -102,13 +104,13 @@ Same as system-wide but by hand: copy rules/skills, merge hooks with absolute pa
 | `CLAUDE_FORM_ALLOW_PARALLEL=1` | Session starts with parallel agents allowed |
 | `CLAUDE_FORM_AGENT_BUDGET` | Per-prompt agent budget when not opted in (default `1`) |
 | `CLAUDE_FORM_PARALLEL_BUDGET` | Budget when opted in (default `8`) |
-| `CLAUDE_FORM_STRICT_SEARCH=1` | Deny (instead of warn on) new-file writes with zero Read/Grep/Glob in the session |
+| `CLAUDE_FORM_STRICT_SEARCH=1` | Deny (instead of warn on) new-file writes with zero Read/Grep/Glob since the last user prompt |
 | `CLAUDE_FORM_STATE_DIR` | Override state directory (default: `os.tmpdir()/claude-forms`) |
 
 ## Platform notes
 
 - **Claude Code:** warn paths inject `additionalContext` only — they never set `permissionDecision`, so your normal permission prompts are untouched. Session state survives `compact`/`resume`/`fork` (SessionStart `source`) and the policy summary is re-injected after compaction. Search-before-write hooks match `Write` only (`Edit` is existing-file).
-- **Cursor:** state is keyed by `conversation_id`. `beforeSubmitPrompt` can't inject agent-visible context (the always-apply rule carries the policy); opt-in detection surfaces as a `user_message`. There is no stop hook — Cursor's `stop` event only supports `followup_message`, which would force an extra agent turn.
+- **Cursor:** state is keyed by `conversation_id`. `beforeSubmitPrompt` can't inject agent-visible context (the always-apply rule carries the policy); opt-in detection surfaces as a `user_message`. There is no stop hook — Cursor's `stop` event only supports `followup_message`, which would force an extra agent turn. `subagentStart` carries no tool-call id, so overlapping installs still double-count agent slots on Cursor (reminder dedupe works everywhere).
 
 ## Tests
 

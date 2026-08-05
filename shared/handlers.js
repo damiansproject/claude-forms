@@ -4,6 +4,7 @@
 const fs = require('fs');
 const { detectOptIn } = require('./detect-opt-in');
 const {
+  DUPLICATE_WINDOW_MS,
   isDisabled,
   resetSession,
   onUserPrompt,
@@ -26,18 +27,35 @@ function handleSessionStart(sessionId, source) {
   if (isDisabled()) {
     return { context: null };
   }
-  if (!PRESERVE_STATE_SOURCES.has(source)) {
-    resetSession(sessionId);
+  const state = loadState(sessionId);
+  const now = Date.now();
+
+  // A second hook copy firing for the same start event (project drop-in plus
+  // user-level install): stay silent and leave state alone.
+  const sameSource = (source || null) === (state.lastSessionStartSource || null);
+  if (sameSource && now - state.lastSessionStartAt < DUPLICATE_WINDOW_MS) {
+    return { context: null };
   }
+
+  let nextState = state;
+  if (!PRESERVE_STATE_SOURCES.has(source)) {
+    nextState = resetSession(sessionId);
+  }
+  nextState.lastSessionStartAt = now;
+  nextState.lastSessionStartSource = source || null;
+  saveState(sessionId, nextState);
   return { context: policySummary() };
 }
 
 function handleUserPrompt(sessionId, prompt, promptId) {
   if (isDisabled()) {
-    return { context: null, optedIn: false };
+    return { context: null, optedIn: false, duplicate: false };
   }
   const optedIn = detectOptIn(prompt || '');
-  onUserPrompt(sessionId, { promptId, allowParallel: optedIn });
+  const { duplicate } = onUserPrompt(sessionId, { promptId, prompt, allowParallel: optedIn });
+  if (duplicate) {
+    return { context: null, optedIn, duplicate };
+  }
   const messageParts = [];
   if (optedIn) {
     messageParts.push(
@@ -45,7 +63,7 @@ function handleUserPrompt(sessionId, prompt, promptId) {
     );
   }
   messageParts.push(userPromptReminder());
-  return { context: messageParts.join(' '), optedIn };
+  return { context: messageParts.join(' '), optedIn, duplicate };
 }
 
 function handleTrackRead(sessionId) {
@@ -76,11 +94,11 @@ function handlePreWrite(sessionId, toolName, filePath) {
   return { context, deny: strict };
 }
 
-function handlePreAgent(sessionId) {
+function handlePreAgent(sessionId, toolUseId) {
   if (isDisabled()) {
     return { allowed: true, reason: '', warn: '' };
   }
-  return tryConsumeAgent(sessionId);
+  return tryConsumeAgent(sessionId, toolUseId);
 }
 
 function handleStop(sessionId) {

@@ -13,10 +13,12 @@ function onFailure() {
 
 async function main(input) {
   const prompt = input.prompt || input.content || input.message || '';
-  const promptId = input.generation_id || input.prompt_id || input.promptId || String(Date.now());
-  const { optedIn } = handleUserPrompt(sessionId(input), prompt, promptId);
+  // No synthetic fallback id: with no platform id, duplicate firings are
+  // detected by prompt text instead.
+  const promptId = input.generation_id || input.prompt_id || input.promptId || null;
+  const { optedIn, duplicate } = handleUserPrompt(sessionId(input), prompt, promptId);
   const response = { continue: true };
-  if (optedIn) {
+  if (optedIn && !duplicate) {
     response.user_message =
       '[claude-forms] Parallel agents enabled for this session (opt-in detected).';
   }

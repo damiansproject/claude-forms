@@ -30,12 +30,12 @@ function searchFirstWarning(filePath, strict) {
   const unknownPath = filePath || '(unknown)';
   if (strict) {
     return (
-      `[claude-forms] Blocked: new file ${unknownPath} with zero Read/Grep/Glob in this session (strict mode). ` +
+      `[claude-forms] Blocked: new file ${unknownPath} with zero Read/Grep/Glob since the last user prompt (strict mode). ` +
       'Search the repo for existing implementations first (Grep/Glob/Read), then retry.'
     );
   }
   return (
-    `[claude-forms] About to write new file ${unknownPath} without any Read/Grep/Glob in this session. ` +
+    `[claude-forms] About to write new file ${unknownPath} without any Read/Grep/Glob since the last user prompt. ` +
     'Search the repo for existing implementations and conventions first; extend in place when possible.'
   );
 }

@@ -56,12 +56,25 @@ console.log('Smoke: Claude Code hooks');
     /descriptive names|little programming/i.test(result.stdout),
   );
 
+  result = runHook('.claude/hooks/session-start.js', {
+    session_id: sessionId,
+    hook_event_name: 'SessionStart',
+  });
+  check('duplicate session-start is silent', result.stdout.trim() === '', result.stdout);
+
   result = runHook('.claude/hooks/user-prompt.js', {
     session_id: sessionId,
     prompt: 'fix the bug',
     prompt_id: 'p1',
   });
   check('user-prompt exits 0', result.status === 0, result.stderr);
+
+  result = runHook('.claude/hooks/user-prompt.js', {
+    session_id: sessionId,
+    prompt: 'fix the bug',
+    prompt_id: 'p1',
+  });
+  check('duplicate user-prompt is silent', result.stdout.trim() === '', result.stdout);
 
   result = runHook('.claude/hooks/pre-agent-cap.js', {
     session_id: sessionId,
@@ -139,6 +152,16 @@ console.log('Smoke: Cursor hooks');
   check(
     'cursor opt-in prompt',
     result.status === 0 && /Parallel agents enabled/i.test(result.stdout),
+    result.stdout,
+  );
+
+  result = runHook('.cursor/hooks/before-submit-prompt.js', {
+    conversation_id: conversationId,
+    prompt: 'use subagents please',
+  });
+  check(
+    'cursor duplicate prompt suppresses opt-in notice',
+    !/Parallel agents enabled/i.test(result.stdout),
     result.stdout,
   );
 

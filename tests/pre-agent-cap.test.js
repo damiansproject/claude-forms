@@ -101,7 +101,7 @@ describe('pre-agent budget', () => {
     assert.equal(sessionState.loadState('agent-test').allowParallel, false);
   });
 
-  it('stop reminder fires once per session', () => {
+  it('stop reminder fires once per prompt and again after the next prompt', () => {
     const firstStop = hookHandlers.handleStop('agent-test');
     assert.ok(firstStop.context);
     assert.match(firstStop.context, /plain language/i);
@@ -111,6 +111,50 @@ describe('pre-agent budget', () => {
     assert.match(firstStop.context, /tool result/i);
     const secondStop = hookHandlers.handleStop('agent-test');
     assert.equal(secondStop.context, null);
+
+    hookHandlers.handleUserPrompt('agent-test', 'next task please', 'p2');
+    const stopAfterNewPrompt = hookHandlers.handleStop('agent-test');
+    assert.ok(stopAfterNewPrompt.context);
+  });
+
+  it('duplicate session-start firing stays silent and keeps state', () => {
+    const firstStart = hookHandlers.handleSessionStart('dup-test', 'startup');
+    assert.ok(firstStart.context);
+    hookHandlers.handleUserPrompt('dup-test', 'use subagents please', 'p1');
+    assert.equal(sessionState.loadState('dup-test').allowParallel, true);
+
+    const duplicateStart = hookHandlers.handleSessionStart('dup-test', 'startup');
+    assert.equal(duplicateStart.context, null);
+    assert.equal(sessionState.loadState('dup-test').allowParallel, true);
+  });
+
+  it('duplicate user-prompt firing returns no context', () => {
+    const firstFiring = hookHandlers.handleUserPrompt('agent-test', 'fix the bug', 'p1');
+    assert.ok(firstFiring.context);
+    const duplicateFiring = hookHandlers.handleUserPrompt('agent-test', 'fix the bug', 'p1');
+    assert.equal(duplicateFiring.context, null);
+  });
+
+  it('duplicate agent firing with the same tool call id consumes one slot', () => {
+    const firstFiring = hookHandlers.handlePreAgent('agent-test', 'toolu_a');
+    assert.equal(firstFiring.allowed, true);
+    const duplicateFiring = hookHandlers.handlePreAgent('agent-test', 'toolu_a');
+    assert.equal(duplicateFiring.allowed, true);
+
+    // Budget is 1 in this suite, so a genuinely new call is denied.
+    const newCall = hookHandlers.handlePreAgent('agent-test', 'toolu_b');
+    assert.equal(newCall.allowed, false);
+  });
+
+  it('search warn returns after a new prompt resets the read count', () => {
+    hookHandlers.handleTrackRead('agent-test');
+    const missing = path.join(STATE_DIR, 'another-new-file.js');
+    const beforeNewPrompt = hookHandlers.handlePreWrite('agent-test', 'Write', missing);
+    assert.equal(beforeNewPrompt.context, null);
+
+    hookHandlers.handleUserPrompt('agent-test', 'write the new module', 'p2');
+    const afterNewPrompt = hookHandlers.handlePreWrite('agent-test', 'Write', missing);
+    assert.ok(afterNewPrompt.context);
   });
 
   it('respects CLAUDE_FORM_DISABLED', () => {

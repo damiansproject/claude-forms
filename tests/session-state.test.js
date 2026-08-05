@@ -56,4 +56,63 @@ describe('session-state', () => {
     sessionState.onUserPrompt('session-one', { promptId: 'next-prompt' });
     assert.equal(sessionState.loadState('session-one').promptAgentCount, 0);
   });
+
+  it('new prompt resets read count and stop reminder', () => {
+    sessionState.resetSession('session-one');
+    sessionState.bumpRead('session-one');
+    const state = sessionState.loadState('session-one');
+    state.stopReminded = true;
+    sessionState.saveState('session-one', state);
+
+    sessionState.onUserPrompt('session-one', { promptId: 'next-prompt', prompt: 'next task' });
+    const afterPrompt = sessionState.loadState('session-one');
+    assert.equal(afterPrompt.readCount, 0);
+    assert.equal(afterPrompt.stopReminded, false);
+  });
+
+  it('second firing with the same prompt id is a duplicate and keeps counters', () => {
+    sessionState.resetSession('session-one');
+    const firstFiring = sessionState.onUserPrompt('session-one', {
+      promptId: 'prompt-one',
+      prompt: 'fix the bug',
+    });
+    assert.equal(firstFiring.duplicate, false);
+
+    sessionState.tryConsumeAgent('session-one');
+    const secondFiring = sessionState.onUserPrompt('session-one', {
+      promptId: 'prompt-one',
+      prompt: 'fix the bug',
+    });
+    assert.equal(secondFiring.duplicate, true);
+    assert.equal(sessionState.loadState('session-one').promptAgentCount, 1);
+  });
+
+  it('with no prompt id, same prompt text right away is a duplicate; new text is not', () => {
+    sessionState.resetSession('session-one');
+    const firstFiring = sessionState.onUserPrompt('session-one', { prompt: 'fix the bug' });
+    assert.equal(firstFiring.duplicate, false);
+
+    const secondFiring = sessionState.onUserPrompt('session-one', { prompt: 'fix the bug' });
+    assert.equal(secondFiring.duplicate, true);
+
+    const differentPrompt = sessionState.onUserPrompt('session-one', {
+      prompt: 'now update the readme',
+    });
+    assert.equal(differentPrompt.duplicate, false);
+  });
+
+  it('same agent tool call id consumes one slot across duplicate firings', () => {
+    sessionState.resetSession('session-one');
+    const firstFiring = sessionState.tryConsumeAgent('session-one', 'toolu_1');
+    assert.equal(firstFiring.allowed, true);
+
+    const duplicateFiring = sessionState.tryConsumeAgent('session-one', 'toolu_1');
+    assert.equal(duplicateFiring.allowed, true);
+    assert.equal(duplicateFiring.warn, '');
+    assert.equal(sessionState.loadState('session-one').promptAgentCount, 1);
+
+    // Budget is 1 in this suite, so a genuinely new call is denied.
+    const newCall = sessionState.tryConsumeAgent('session-one', 'toolu_2');
+    assert.equal(newCall.allowed, false);
+  });
 });
