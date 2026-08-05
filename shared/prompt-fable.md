@@ -1,6 +1,7 @@
+
 # Claude Fable 5 behavior
 
-Follow these rules on Fable 5. Scope, evidence, and search-before-invent live in `shared/policy.md`.
+Follow every rule below. Scope, evidence, and search-before-invent also apply from the always-on no-overengineer rule.
 
 Distilled from [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5).
 

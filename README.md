@@ -37,18 +37,18 @@ claude-forms/
   tests/
 ```
 
-Edit skills/rules under `.claude/`, then run `npm run sync` (also runs at the start of `npm test`).
+Edit **`.claude/rules/no-overengineer.md`** (always-on policy) and **`.claude/skills/prompt-*/SKILL.md`** (model-specific), then run `npm run sync` (also runs at the start of `npm test`). Sync mirrors the rule into `shared/policy.md`, the `no-overengineer` skill, and Cursor.
 
 ## Skills
 
 | Skill | When to use |
 |---|---|
-| `no-overengineer` | Scope, search-before-invent, delegation limits (always-on rule mirrors this) |
+| `no-overengineer` | Always-on rule (full policy); skill mirrors the same text when invoked |
 | `prompt-general` | General agent behavior (scope, action, plain code, readable output) |
 | `prompt-opus-5` | Opus 5: brevity, narration cadence, subagent limits, self-correction noise |
 | `prompt-fable-5` | Fable 5: long runs, autonomy, progress evidence, readability, `send_to_user` |
 
-Extended behavior text (read via skills): `shared/prompt-general.md`, `shared/prompt-opus.md`, `shared/prompt-fable.md`.
+Extended behavior text (mirrored from skills on `npm run sync`): `shared/prompt-general.md`, `shared/prompt-opus.md`, `shared/prompt-fable.md`. **Edit `.claude/skills/prompt-*/SKILL.md`** — that is what loads when you invoke the skill.
 
 ## Install
 

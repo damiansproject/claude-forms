@@ -1,6 +1,7 @@
+
 # Claude Opus 5 behavior
 
-Follow these rules on Opus 5. Scope and search-before-invent live in `shared/policy.md`.
+Follow every rule below. Scope and search-before-invent also apply from the always-on no-overengineer rule.
 
 Distilled from [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5).
 

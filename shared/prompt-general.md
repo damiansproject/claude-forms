@@ -1,6 +1,7 @@
+
 # General coding agent behavior
 
-Follow these rules when no model-specific guide applies. Scope, search, and delegation limits also live in `shared/policy.md`. Do not stack this with the Opus 5 or Fable 5 guides.
+Follow every rule below when no model-specific guide applies. Scope, search, and delegation limits also apply from the always-on no-overengineer rule. Do not stack this with the Opus 5 or Fable 5 guides.
 
 ## Scope and action
 

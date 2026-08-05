@@ -214,7 +214,7 @@ console.log('Smoke: platform mirrors');
   }
   const rule = fs.readFileSync(path.join(ROOT, '.cursor', 'rules', 'no-overengineer.mdc'), 'utf8');
   check('cursor rule has alwaysApply frontmatter', /alwaysApply:\s*true/.test(rule));
-  check('cursor rule has policy body', /Deliver only what was asked/.test(rule));
+  check('cursor rule has policy body', /Follow every rule below|Deliver what was asked/.test(rule));
 }
 
 fs.rmSync(STATE_DIR, { recursive: true, force: true });
