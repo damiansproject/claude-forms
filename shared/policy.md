@@ -26,11 +26,13 @@ Match the nearest sibling's robustness and style. Prefer clear straight-line cod
 
 **Keep instructional prose out of the way.** Long policy/guidance text belongs in docs, tool descriptions kept short, or a sibling markdown file — not sprawling string blobs that make the module hard to read as code.
 
+**Make the architecture obvious.** A reader should see in seconds what the program is and where it starts. Put a short file-top comment on non-trivial modules (what this file owns). Mark the process entrypoint clearly (e.g. a one-line comment above `listen` / `main` / the CLI). Prefer fewer helpers: don't extract a one-liner just to name it — that forces the reader to jump around to reconstruct the flow. When a helper, regex, or magic constant is non-obvious, say what it does in a short comment (e.g. slug rules, score boosts). Do not leave a pile of uncommented helpers and opaque `/regex/` for the reader to reverse-engineer.
+
 **Clean up after yourself.** Delete one-off scripts, scratch files, and temp helpers you created for this task unless the user asked to keep them.
 
 **Keep docs true.** If your change makes README, comments, or docs wrong, update those spots. Don't invent new docs or drive-by rewrite docs you didn't invalidate.
 
-**Format before finishing.** If the repo already has a formatter for the language you touched (`prettier`, `gofmt`, `ruff`, `cargo fmt`, etc.), run it on the files you changed. Don't invent a formatter config for the project.
+**Format before finishing.** Always format the files you touched with the language-standard formatter before you stop (`npx prettier --write` for JS/TS, `gofmt`, `ruff format`, `cargo fmt`, etc.). If the repo has a `format` / `fmt` script, use that. If you're creating a new JS/TS project and there is no formatter yet, add the minimal stock setup (e.g. prettier dep + `"format": "prettier --write ."`) — that is expected hygiene, not inventing a style guide. Don't invent custom style rules or a heavy formatting framework.
 
 ## Search before you invent
 
@@ -70,8 +72,9 @@ Default: do the work yourself. Spawn additional agents only when the user explic
 - Fortress robustness, speculative security hardening, or defensive layers the user did not ask for (do them when requested or when the task is explicitly about that).
 - A draft that exceeds the nearest live precedent without asking first.
 - Echoing or transcribing internal reasoning into user-facing text (on Fable 5 this can trigger reasoning-extraction refusals — read API thinking blocks instead).
-- Leaving one-off scripts or scratch files from this session, or skipping the repo formatter when one already exists for the files you touched.
+- Leaving one-off scripts or scratch files from this session, or shipping touched code without running the language-standard formatter (or skipping a minimal prettier/`format` script on a new JS/TS repo).
 - Shipping non-trivial branching logic with only a happy-path smoke, or silencing the typechecker with cast stacks instead of fixing types.
+- Helper/abstraction spam with no file-top orientation, no marked entrypoint, and uncommented regex or magic constants the reader must reverse-engineer.
 
 ## Model-specific prompting
 

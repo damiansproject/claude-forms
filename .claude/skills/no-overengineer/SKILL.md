@@ -25,6 +25,7 @@ Read and follow [shared/policy.md](../../../shared/policy.md) (project root). Su
 - Extra robustness / security hardening only when requested (or the task is explicitly about that).
 - Prefer rewriting a local unit over stacking patches that leave dead paths; delete obsolete code your change replaced.
 - Minimal files ≠ done: handle edges you own, keep types honest (no `as unknown as` stacks), keep long instructional prose out of hot paths.
+- Make architecture obvious: short file-top orientation, mark the entrypoint, prefer fewer jump-around helpers, comment non-obvious regex/magic.
 - Do not spawn subagents to verify your own work. Do work yourself unless the user asked for parallel agents or the task is large and independently parallelizable.
 - Do not add "final verification" scaffolding.
 
@@ -33,7 +34,7 @@ Read and follow [shared/policy.md](../../../shared/policy.md) (project root). Su
 - Exercise edges you own; add or run focused tests for non-trivial branching you introduced (not a verify-subagent).
 - Delete one-off scripts / scratch files you created unless asked to keep them.
 - Update docs your change made wrong; don't invent new docs.
-- Run the repo's existing formatter on files you touched (don't invent a formatter config).
+- Always format touched files with the language-standard formatter; on new JS/TS repos add minimal prettier + `format` script if missing.
 - Lead with the outcome.
 - Only claim progress you can point to via tool results from this session.
 - Final user message: plain language for a reader who saw none of the work — no working abbreviations, arrow chains, or mid-run labels.

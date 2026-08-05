@@ -102,7 +102,8 @@ describe('pre-agent budget', () => {
     const first = handlers.handleStop('agent-test');
     assert.ok(first.context);
     assert.match(first.context, /plain language/i);
-    assert.match(first.context, /formatter/i);
+    assert.match(first.context, /format/i);
+    assert.match(first.context, /entrypoint|architecture obvious/i);
     assert.match(first.context, /edges you own|non-trivial/i);
     assert.match(first.context, /tool result/i);
     const second = handlers.handleStop('agent-test');

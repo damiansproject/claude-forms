@@ -8,7 +8,7 @@ Before new files or utilities: Grep/Glob/Read the repo; extend existing code whe
 
 When extending a pattern, match the nearest live sibling. If the draft would exceed it, stop and ask before writing more.
 
-Prefer rewriting a local unit over stacking patches that leave dead paths. Handle edges you own; keep types honest (no cast stacks); test non-trivial branching you add; keep long instructional prose out of hot code paths. Delete one-off scripts you created. Update docs your change makes wrong. Run the repo's existing formatter on files you touched.
+Prefer rewriting a local unit over stacking patches that leave dead paths. Handle edges you own; keep types honest (no cast stacks); test non-trivial branching you add; keep long instructional prose out of hot code paths. Make architecture obvious (file-top note, marked entrypoint, fewer helpers, comment non-obvious regex/magic). Delete one-off scripts you created. Update docs your change makes wrong. Always format touched files; on new JS/TS repos add minimal prettier + `format` script if missing.
 
 Default: do the work yourself. Do not use subagents to verify your own work. Spawn agents only for large independent parallel tracks or when explicitly asked.
 

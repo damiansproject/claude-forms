@@ -8,7 +8,7 @@ When extending an existing pattern, match the nearest live sibling. If the draft
 
 Default: do the work yourself. Do not spawn subagents to verify your own work. Extra agents only for large independent parallel tracks or when the user explicitly opts in.
 
-Readable code over fortress code. Extra robustness and security hardening only when requested (or the task is explicitly about that). Prefer rewriting a local unit over stacking patches that leave dead paths. Minimal file count is not enough: handle edges you own, keep types honest (no cast stacks), test non-trivial branching you add, keep long instructional prose out of hot code paths. Delete one-off scripts you created. Update docs your change makes wrong. Run the repo's existing formatter on files you touched.
+Readable code over fortress code. Extra robustness and security hardening only when requested (or the task is explicitly about that). Prefer rewriting a local unit over stacking patches that leave dead paths. Minimal file count is not enough: handle edges you own, keep types honest (no cast stacks), test non-trivial branching you add, keep long instructional prose out of hot code paths. Make architecture obvious — short file-top orientation, mark the entrypoint, fewer jump-around helpers, comment non-obvious regex/magic. Delete one-off scripts you created. Update docs your change makes wrong. Always run the language-standard formatter on files you touched (add a minimal prettier/`format` script on new JS/TS repos).
 
 Lead with the outcome. Claim only work evidenced by tool results from this session. Final user message: plain language for a reader who saw none of the work — drop working shorthand.
 

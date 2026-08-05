@@ -14,7 +14,8 @@ Policy sources: [Prompting Claude Opus 5](https://platform.claude.com/docs/en/bu
 | In-scope overbuild (exceeds live precedent) | Ask-before-escalate checkpoint (policy, skills, session inject) | — |
 | Fortress code / unrequested robustness | Hygiene section (robustness on request); effort guidance | — |
 | Brittle minimal code (bad edges, cast stacks, no tests, prose-in-code) | Craft rules in Hygiene + Stop finish reminder | — |
-| Patch stacks / leftover one-offs / stale docs / unformatted edits | Hygiene section + Stop finish reminder | — |
+| Unreadable structure (no entrypoint mark, helper spam, opaque regex) | Architecture-obvious rules in Hygiene + Stop | — |
+| Patch stacks / leftover one-offs / stale docs / unformatted edits | Hygiene section + Stop finish reminder (always format; add minimal prettier on new JS/TS) | — |
 | Reinvent / ignore existing code | Search-before-write skill + warn on new `Write` with zero reads | Optional deny (`CLAUDE_FORM_STRICT_SEARCH=1`) |
 | Hallucinated progress | Stop / finish reminder (once per session) | — |
 | Subagent cost explosion | Warn at last slot | Deny Agent/Task/Workflow past budget unless user opts in |

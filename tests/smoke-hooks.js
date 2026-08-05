@@ -100,7 +100,8 @@ console.log('Smoke: Claude Code hooks');
     'first stop shows reminder',
     /systemMessage/.test(r.stdout) &&
       /plain language/i.test(r.stdout) &&
-      /formatter/i.test(r.stdout) &&
+      /format/i.test(r.stdout) &&
+      /entrypoint|architecture obvious/i.test(r.stdout) &&
       /edges you own|non-trivial/i.test(r.stdout),
     r.stdout
   );
