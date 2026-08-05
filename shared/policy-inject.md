@@ -1,0 +1,15 @@
+# Hook injection text (claude-forms)
+
+Short strings injected by hooks. Edit here — `shared/policy.js` reads these sections at runtime.
+
+<!-- inject:session-start -->
+[claude-forms] Scope tightly: deliver only what was asked. No drive-by refactors, helpers, or speculative abstractions. Search the repo (Grep/Glob/Read) before creating new files or utilities; extend existing code when it fits. When extending a pattern, match the nearest live sibling. If the draft would exceed it in modes, schema, or layers, stop and ask — do not write the fat file first. Prefer dumb boring flat code over style theater. Write so a reader with little programming experience can follow the order: descriptive names, braces, explicit if/loops/async-await when clearer. One obvious ternary or map/filter is fine; do not chain them. Use async main for hook/CLI entrypoints; for-loops for multi-step transforms; one shared copy for duplicate install logic; full-word test names. Readable over fortress; robustness/security only when requested. Prefer rewrite over patch stacks. Minimal files ≠ done: honest types, owned edges, tests for non-trivial branching, architecture obvious (file-top note, marked entrypoint, fewer helpers, comment regex/magic), always format touched files (add minimal prettier on new JS/TS); delete one-offs; keep docs true. Claim only work you can evidence with tool results from this session. Default: do the work yourself. Extra agents only for large independent parallel tracks or when the user opts in. Do not add verify/double-check/subagent-review scaffolding for your own work.
+<!-- /inject:session-start -->
+
+<!-- inject:user-prompt -->
+[claude-forms] Stay in scope. Search before inventing. Match the nearest live sibling; if the draft would exceed it, stop and ask before writing more. Prefer doing the work yourself unless the user asked for parallel agents. Prefer dumb boring flat code with descriptive names and explicit sequential control flow; readable over fortress; robustness on request; make architecture obvious and always format touched files before finishing.
+<!-- /inject:user-prompt -->
+
+<!-- inject:stop -->
+[claude-forms] Lead with the outcome. Before claiming progress, audit each claim against a tool result from this session. If something is unverified, say so. Do not expand scope beyond what was asked. Before finishing: prefer dumb flat code over style theater, replace shorthand names and compressed control flow, collapse unearned layers, exercise edges you own, avoid type cast stacks, run or add focused tests for non-trivial branching, make architecture obvious (file-top orientation, marked entrypoint, comment non-obvious regex/magic, avoid helper spam), delete one-off scripts you created, update docs your change made wrong, and always format touched files (language-standard formatter; add minimal prettier/`format` on new JS/TS if missing). Final user message: plain language for a reader who saw none of the work — no working abbreviations, arrow chains, or labels you invented mid-run.
+<!-- /inject:stop -->

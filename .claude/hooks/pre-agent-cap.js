@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, claudeDeny, claudeContext, sessionId } = require('../../shared/io');
+const { runHook } = require('../../shared/run-hook');
+const { claudeDeny, claudeContext, sessionId } = require('../../shared/io');
 const { handlePreAgent } = require('../../shared/handlers');
 
-readStdin()
-  .then((raw) => {
-    const input = parseInput(raw);
-    const result = handlePreAgent(sessionId(input));
-    if (!result.allowed) {
-      claudeDeny(result.reason);
-      return;
-    }
-    if (result.warn) {
-      claudeContext('PreToolUse', result.warn); // context only, no permissionDecision
-      return;
-    }
-    // allow silently
-  })
-  .catch(() => process.exit(0));
+async function main(input) {
+  const result = handlePreAgent(sessionId(input));
+  if (!result.allowed) {
+    claudeDeny(result.reason);
+    return;
+  }
+  if (result.warn) {
+    // Context only; do not set permissionDecision.
+    claudeContext('PreToolUse', result.warn);
+  }
+}
+
+runHook(main);

@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, claudeContext, sessionId } = require('../../shared/io');
+const { runHook } = require('../../shared/run-hook');
+const { claudeContext, sessionId } = require('../../shared/io');
 const { handleSessionStart } = require('../../shared/handlers');
 
-readStdin()
-  .then((raw) => {
-    const input = parseInput(raw);
-    const { context } = handleSessionStart(sessionId(input), input.source);
-    if (context) {
-      claudeContext('SessionStart', context);
-    }
-  })
-  .catch(() => process.exit(0));
+async function main(input) {
+  const { context } = handleSessionStart(sessionId(input), input.source);
+  if (context) {
+    claudeContext('SessionStart', context);
+  }
+}
+
+runHook(main);

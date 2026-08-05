@@ -1,10 +1,10 @@
 # claude-forms
 
-Anti-overengineering harness for **Claude Opus 5** and **Claude Fable 5**.
+Anti-overengineering harness for coding agents, with model-specific guidance for **Claude Opus 5** and **Claude Fable 5**.
 
 Steers agents away from over-scoping, drive-by refactors, and reinventing code that already exists — via a short shared policy, always-on rules/skills, and hooks for **Claude Code** and **Cursor**.
 
-Policy sources: [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5), [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5).
+Model-specific sources: [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5), [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5).
 
 ## What it does
 
@@ -13,6 +13,7 @@ Policy sources: [Prompting Claude Opus 5](https://platform.claude.com/docs/en/bu
 | Over-scoping / unrequested refactors | Session + prompt reminders | — |
 | In-scope overbuild (exceeds live precedent) | Ask-before-escalate checkpoint (policy, skills, session inject) | — |
 | Fortress code / unrequested robustness | Hygiene section (robustness on request); effort guidance | — |
+| Style theater (looks engineered, unearned layers) | Prefer dumb/boring flat code (policy + skill + session inject) | — |
 | Brittle minimal code (bad edges, cast stacks, no tests, prose-in-code) | Craft rules in Hygiene + Stop finish reminder | — |
 | Unreadable structure (no entrypoint mark, helper spam, opaque regex) | Architecture-obvious rules in Hygiene + Stop | — |
 | Patch stacks / leftover one-offs / stale docs / unformatted edits | Hygiene section + Stop finish reminder (always format; add minimal prettier on new JS/TS) | — |
@@ -28,7 +29,7 @@ Opt-in persists for the rest of the session, including across compaction and res
 
 ```
 claude-forms/
-  shared/                 # policy, prompt-opus/fable refs, session state, handlers
+  shared/                 # policy, general/model prompt refs, session state, handlers
   .claude/                # Claude Code settings, rules, skills, hooks (canonical)
   .cursor/                # Cursor hooks + mirrored rules/skills (from .claude via npm run sync)
   templates/              # CLAUDE.md.snippet, LESSONS.md.snippet
@@ -43,10 +44,11 @@ Edit skills/rules under `.claude/`, then run `npm run sync` (also runs at the st
 | Skill | When to use |
 |---|---|
 | `no-overengineer` | Scope, search-before-invent, delegation limits (always-on rule mirrors this) |
-| `prompt-opus-5` | Tune Opus verbosity, narration, deliverable length, subagent guidance |
-| `prompt-fable-5` | Long runs, autonomy, memory, readability, async `send_to_user` |
+| `prompt-general` | General agent behavior (scope, action, plain code, readable output) |
+| `prompt-opus-5` | Opus 5: brevity, narration cadence, subagent limits, self-correction noise |
+| `prompt-fable-5` | Fable 5: long runs, autonomy, progress evidence, readability, `send_to_user` |
 
-Shared reference text (copy into `CLAUDE.md` or read via skills): `shared/prompt-opus.md`, `shared/prompt-fable.md`.
+Extended behavior text (read via skills): `shared/prompt-general.md`, `shared/prompt-opus.md`, `shared/prompt-fable.md`.
 
 ## Install
 
@@ -82,6 +84,11 @@ Installs:
 - `~/.claude/skills/`, `~/.cursor/skills/` — all claude-forms skills (paths patched)
 
 Re-run after upgrading claude-forms. If a project also has a project-level copy, hooks may run twice — use `CLAUDE_FORM_DISABLED=1` in that project or remove the project drop-in.
+
+```bash
+npm run uninstall:user          # strip hooks/rules/skills; leave install root
+npm run uninstall:user -- --purge   # also delete the install root
+```
 
 ### Personal (manual)
 

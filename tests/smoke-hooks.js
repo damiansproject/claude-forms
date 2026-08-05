@@ -13,8 +13,8 @@ const os = require('os');
 const ROOT = path.join(__dirname, '..');
 const STATE_DIR = path.join(os.tmpdir(), `claude-forms-smoke-${process.pid}`);
 
-function runHook(rel, input, extraEnv = {}) {
-  const result = spawnSync('node', [path.join(ROOT, rel)], {
+function runHook(hookPath, input, extraEnv = {}) {
+  return spawnSync('node', [path.join(ROOT, hookPath)], {
     input: JSON.stringify(input),
     encoding: 'utf8',
     env: {
@@ -24,146 +24,193 @@ function runHook(rel, input, extraEnv = {}) {
       ...extraEnv,
     },
   });
-  return result;
 }
 
 fs.rmSync(STATE_DIR, { recursive: true, force: true });
 
 let failed = 0;
 
-function check(name, cond, detail) {
-  if (cond) {
+function check(name, condition, detail) {
+  if (condition) {
     console.log(`  ✓ ${name}`);
   } else {
     console.log(`  ✗ ${name}`);
-    if (detail) console.log(`    ${detail}`);
+    if (detail) {
+      console.log(`    ${detail}`);
+    }
     failed++;
   }
 }
 
 console.log('Smoke: Claude Code hooks');
 {
-  const sid = 'smoke-claude';
-  let r = runHook('.claude/hooks/session-start.js', {
-    session_id: sid,
+  const sessionId = 'smoke-claude';
+  let result = runHook('.claude/hooks/session-start.js', {
+    session_id: sessionId,
     hook_event_name: 'SessionStart',
   });
-  check('session-start exits 0', r.status === 0, r.stderr);
-  check('session-start has context', /claude-forms/.test(r.stdout));
+  check('session-start exits 0', result.status === 0, result.stderr);
+  check('session-start has context', /claude-forms/.test(result.stdout));
+  check(
+    'session-start has plain-code guardrail',
+    /descriptive names|little programming/i.test(result.stdout),
+  );
 
-  r = runHook('.claude/hooks/user-prompt.js', {
-    session_id: sid,
+  result = runHook('.claude/hooks/user-prompt.js', {
+    session_id: sessionId,
     prompt: 'fix the bug',
     prompt_id: 'p1',
   });
-  check('user-prompt exits 0', r.status === 0, r.stderr);
+  check('user-prompt exits 0', result.status === 0, result.stderr);
 
-  r = runHook('.claude/hooks/pre-agent-cap.js', {
-    session_id: sid,
+  result = runHook('.claude/hooks/pre-agent-cap.js', {
+    session_id: sessionId,
     tool_name: 'Agent',
     tool_input: {},
   });
-  check('first agent allowed/silent-or-warn', r.status === 0, r.stderr);
+  check('first agent allowed/silent-or-warn', result.status === 0, result.stderr);
 
-  r = runHook('.claude/hooks/pre-agent-cap.js', {
-    session_id: sid,
+  result = runHook('.claude/hooks/pre-agent-cap.js', {
+    session_id: sessionId,
     tool_name: 'Agent',
     tool_input: {},
   });
-  check('second agent denied', /deny|budget/i.test(r.stdout), r.stdout);
+  check('second agent denied', /deny|budget/i.test(result.stdout), result.stdout);
 
-  r = runHook('.claude/hooks/pre-write-search.js', {
-    session_id: sid,
+  result = runHook('.claude/hooks/pre-write-search.js', {
+    session_id: sessionId,
     tool_name: 'Write',
     tool_input: { file_path: path.join(STATE_DIR, 'new.js'), content: 'x' },
   });
-  check('write warn without reads', /Search the repo|claude-forms/i.test(r.stdout), r.stdout);
+  check(
+    'write warn without reads',
+    /Search the repo|claude-forms/i.test(result.stdout),
+    result.stdout,
+  );
   check(
     'write warn does not grant permission',
-    !/permissionDecision/.test(r.stdout),
-    r.stdout
+    !/permissionDecision/.test(result.stdout),
+    result.stdout,
   );
 
-  r = runHook(
+  result = runHook(
     '.claude/hooks/pre-write-search.js',
     {
       session_id: 'smoke-strict',
       tool_name: 'Write',
       tool_input: { file_path: path.join(STATE_DIR, 'new2.js'), content: 'x' },
     },
-    { CLAUDE_FORM_STRICT_SEARCH: '1' }
+    { CLAUDE_FORM_STRICT_SEARCH: '1' },
   );
-  check('strict mode denies write without reads', /"permissionDecision":"deny"/.test(r.stdout), r.stdout);
+  check(
+    'strict mode denies write without reads',
+    /"permissionDecision":"deny"/.test(result.stdout),
+    result.stdout,
+  );
 
-  r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
+  result = runHook('.claude/hooks/stop-ground.js', { session_id: sessionId });
   check(
     'first stop shows reminder',
-    /systemMessage/.test(r.stdout) &&
-      /plain language/i.test(r.stdout) &&
-      /format/i.test(r.stdout) &&
-      /entrypoint|architecture obvious/i.test(r.stdout) &&
-      /edges you own|non-trivial/i.test(r.stdout),
-    r.stdout
+    /systemMessage/.test(result.stdout) &&
+      /plain language/i.test(result.stdout) &&
+      /format/i.test(result.stdout) &&
+      /entrypoint|architecture obvious/i.test(result.stdout) &&
+      /edges you own|non-trivial/i.test(result.stdout),
+    result.stdout,
   );
-  r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
-  check('second stop is silent', r.stdout.trim() === '', r.stdout);
+  result = runHook('.claude/hooks/stop-ground.js', { session_id: sessionId });
+  check('second stop is silent', result.stdout.trim() === '', result.stdout);
 }
 
 console.log('Smoke: Cursor hooks');
 {
-  // Cursor payloads carry conversation_id, not session_id.
-  const cid = 'smoke-cursor';
-  let r = runHook('.cursor/hooks/session-start.js', { conversation_id: cid });
-  check('cursor session-start', r.status === 0 && /claude-forms/.test(r.stdout), r.stdout);
+  const conversationId = 'smoke-cursor';
+  let result = runHook('.cursor/hooks/session-start.js', { conversation_id: conversationId });
+  check(
+    'cursor session-start',
+    result.status === 0 && /claude-forms/.test(result.stdout),
+    result.stdout,
+  );
 
-  r = runHook('.cursor/hooks/before-submit-prompt.js', {
-    conversation_id: cid,
+  result = runHook('.cursor/hooks/before-submit-prompt.js', {
+    conversation_id: conversationId,
     prompt: 'use subagents please',
   });
-  check('cursor opt-in prompt', r.status === 0 && /Parallel agents enabled/i.test(r.stdout), r.stdout);
+  check(
+    'cursor opt-in prompt',
+    result.status === 0 && /Parallel agents enabled/i.test(result.stdout),
+    result.stdout,
+  );
 
-  r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid });
-  check('cursor agent allow after opt-in', r.status === 0 && !/deny/i.test(r.stdout), r.stdout);
+  result = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: conversationId });
+  check(
+    'cursor agent allow after opt-in',
+    result.status === 0 && !/deny/i.test(result.stdout),
+    result.stdout,
+  );
 
-  // Fresh session without opt-in: first agent ok, second denied.
-  const cid2 = 'smoke-cursor-budget';
-  runHook('.cursor/hooks/session-start.js', { conversation_id: cid2 });
+  const budgetConversationId = 'smoke-cursor-budget';
+  runHook('.cursor/hooks/session-start.js', { conversation_id: budgetConversationId });
   runHook('.cursor/hooks/before-submit-prompt.js', {
-    conversation_id: cid2,
+    conversation_id: budgetConversationId,
     prompt: 'fix the bug',
   });
-  r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid2 });
-  check('cursor first agent allowed', r.status === 0 && !/"permission"\s*:\s*"deny"/.test(r.stdout), r.stdout);
-  r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid2 });
-  check('cursor second agent denied', /"permission"\s*:\s*"deny"/i.test(r.stdout), r.stdout);
+  result = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: budgetConversationId });
+  check(
+    'cursor first agent allowed',
+    result.status === 0 && !/"permission"\s*:\s*"deny"/.test(result.stdout),
+    result.stdout,
+  );
+  result = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: budgetConversationId });
+  check(
+    'cursor second agent denied',
+    /"permission"\s*:\s*"deny"/i.test(result.stdout),
+    result.stdout,
+  );
 
-  r = runHook('.cursor/hooks/pre-write-search.js', {
-    conversation_id: cid2,
+  result = runHook('.cursor/hooks/pre-write-search.js', {
+    conversation_id: budgetConversationId,
     tool_name: 'Write',
     tool_input: { file_path: path.join(STATE_DIR, 'cursor-new.js'), content: 'x' },
   });
-  check('cursor write warn without reads', /Search the repo|claude-forms/i.test(r.stdout), r.stdout);
-  check('cursor write warn is not a deny', !/"permission"\s*:\s*"deny"/.test(r.stdout), r.stdout);
+  check(
+    'cursor write warn without reads',
+    /Search the repo|claude-forms/i.test(result.stdout),
+    result.stdout,
+  );
+  check(
+    'cursor write warn is not a deny',
+    !/"permission"\s*:\s*"deny"/.test(result.stdout),
+    result.stdout,
+  );
 
-  r = runHook(
+  result = runHook(
     '.cursor/hooks/pre-write-search.js',
     {
       conversation_id: 'smoke-cursor-strict',
       tool_name: 'Write',
       tool_input: { file_path: path.join(STATE_DIR, 'cursor-strict.js'), content: 'x' },
     },
-    { CLAUDE_FORM_STRICT_SEARCH: '1' }
+    { CLAUDE_FORM_STRICT_SEARCH: '1' },
   );
-  check('cursor strict denies write without reads', /"permission"\s*:\s*"deny"/.test(r.stdout), r.stdout);
+  check(
+    'cursor strict denies write without reads',
+    /"permission"\s*:\s*"deny"/.test(result.stdout),
+    result.stdout,
+  );
 }
 
 console.log('Smoke: platform mirrors');
 {
-  const skills = ['no-overengineer', 'prompt-opus-5', 'prompt-fable-5'];
-  for (const name of skills) {
-    const a = fs.readFileSync(path.join(ROOT, '.claude', 'skills', name, 'SKILL.md'));
-    const b = fs.readFileSync(path.join(ROOT, '.cursor', 'skills', name, 'SKILL.md'));
-    check(`skill ${name} mirrors`, Buffer.compare(a, b) === 0);
+  const skills = ['no-overengineer', 'prompt-general', 'prompt-opus-5', 'prompt-fable-5'];
+  for (const skillName of skills) {
+    const claudeSkill = fs.readFileSync(
+      path.join(ROOT, '.claude', 'skills', skillName, 'SKILL.md'),
+    );
+    const cursorSkill = fs.readFileSync(
+      path.join(ROOT, '.cursor', 'skills', skillName, 'SKILL.md'),
+    );
+    check(`skill ${skillName} mirrors`, Buffer.compare(claudeSkill, cursorSkill) === 0);
   }
   const rule = fs.readFileSync(path.join(ROOT, '.cursor', 'rules', 'no-overengineer.mdc'), 'utf8');
   check('cursor rule has alwaysApply frontmatter', /alwaysApply:\s*true/.test(rule));

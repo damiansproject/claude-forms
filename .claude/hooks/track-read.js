@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, sessionId } = require('../../shared/io');
+const { runHook } = require('../../shared/run-hook');
+const { sessionId } = require('../../shared/io');
 const { handleTrackRead } = require('../../shared/handlers');
 
-readStdin()
-  .then((raw) => {
-    const input = parseInput(raw);
-    handleTrackRead(sessionId(input));
-  })
-  .catch(() => process.exit(0));
+async function main(input) {
+  handleTrackRead(sessionId(input));
+}
+
+runHook(main);

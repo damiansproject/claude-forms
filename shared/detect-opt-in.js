@@ -2,33 +2,38 @@
 
 /**
  * Detect whether the user explicitly opted into parallel / subagent work.
+ * Bare words like "parallel" or "delegate" alone do not opt in.
  */
 
-// Agent/parallel phrases only — bare "parallel", "delegate", etc. false-positive on normal asks.
 const OPT_IN_PATTERNS = [
-  /\bparallel\s+agents?\b/i,
-  /\bagents?\s+in\s+parallel\b/i,
-  /\bin\s+parallel\b/i,
-  /\bsub-?agents?\b/i,
-  /\buse\s+(?:\w+\s+)?agents?\b/i,
-  /\bspawn\s+(?:\w+\s+)?agents?\b/i,
-  /\b(?:multiple|many|several)\s+agents?\b/i,
-  /\bfan\s*-?\s*out\b/i,
-  /\bdelegate\s+(?:this|that|it|everything)\b/i,
-  /\bautonomously\b/i,
-  /\bgo\s+do\b/i,
+  { label: '"parallel agents" or "parallel agent"', pattern: /\bparallel\s+agents?\b/i },
+  { label: '"agents in parallel"', pattern: /\bagents?\s+in\s+parallel\b/i },
+  { label: '"in parallel" (any parallel work)', pattern: /\bin\s+parallel\b/i },
+  { label: '"subagent" or "sub-agent"', pattern: /\bsub-?agents?\b/i },
+  { label: '"use … agents" (e.g. use 3 agents)', pattern: /\buse\s+(?:\w+\s+)?agents?\b/i },
+  { label: '"spawn … agents"', pattern: /\bspawn\s+(?:\w+\s+)?agents?\b/i },
+  { label: '"multiple/many/several agents"', pattern: /\b(?:multiple|many|several)\s+agents?\b/i },
+  { label: '"fan out"', pattern: /\bfan\s*-?\s*out\b/i },
+  {
+    label: '"delegate this/that/it/everything"',
+    pattern: /\bdelegate\s+(?:this|that|it|everything)\b/i,
+  },
+  { label: '"autonomously"', pattern: /\bautonomously\b/i },
+  { label: '"go do" (autonomous pipeline)', pattern: /\bgo\s+do\b/i },
 ];
 
-/**
- * @param {string} text
- * @returns {boolean}
- */
 function detectOptIn(text) {
-  if (!text || typeof text !== 'string') return false;
-  return OPT_IN_PATTERNS.some((re) => re.test(text));
+  if (!text || typeof text !== 'string') {
+    return false;
+  }
+  for (const entry of OPT_IN_PATTERNS) {
+    if (entry.pattern.test(text)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 module.exports = {
   detectOptIn,
-  OPT_IN_PATTERNS,
 };

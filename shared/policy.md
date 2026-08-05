@@ -1,6 +1,6 @@
 # Claude Forms — no overengineering
 
-Brief steering for Claude Opus 5 and Claude Fable 5. Prefer these short rules over long checklists.
+Brief steering for coding agents. Prefer these short rules over long checklists.
 
 ## Scope
 
@@ -14,6 +14,10 @@ When the user is describing a problem, asking a question, or thinking out loud r
 
 Match the nearest sibling's robustness and style. Prefer clear straight-line code over fortress-style scaffolding. Security and other hardening are valuable when the user asks for them or the task is explicitly about them; do not invent them by default.
 
+**Prefer dumb, boring code.** "Looks well-made" is not a goal. Write so a reader with little programming experience can follow the order of operations. Use complete descriptive names instead of abbreviations or one-letter callback parameters. Flat locals and one straight function beat code that looks engineered. Use braces and explicit `if` statements, loops, and `async`/`await` when they make the steps easier to follow. A simple ternary, `map`, or `filter` is fine when it expresses one obvious choice or transformation; do not nest or chain them to compress several steps. Readability is not measured by line count. Style theater is still overengineering when scope stayed narrow: factories/registries/builders for a handful of call sites, extract-only-to-name helpers, protocol/wrapper layers that only rename, Result/Option ceremony for local returns, premature generics. Finish check: if a stranger would ask why this is so layered, collapse it before you stop.
+
+**Readable structure conventions.** CLI and hook entrypoints: use `async function main()` (or equivalent) so execution reads top to bottom, not `.then/.catch` chains. Multi-step data changes: use `for` loops and named locals, not chained `map`/`filter`/spread pipelines. Cross-platform field lookup: step through alternatives with short comments, not long `||` chains. Duplicate logic in sibling scripts (install/uninstall, Claude/Cursor mirrors): one shared copy, not two. Tests: use full words in names and describe behavior in plain language — tests are documentation.
+
 **Minimal architecture is not done.** A small file count with brittle logic, dishonest types, or unreadable prose-in-code is still a miss. Prefer a short correct function over a clever one that crashes on empty input or lies to the typechecker.
 
 **Rewrite when the patch would be worse.** If fixing or changing behavior means wrapping, forking, or leaving dead paths, rewrite the local unit (function/module) instead of stacking another layer. Prefer diffs that delete obsolete code your change replaced, not only additions. Don't expand into unrelated cleanup.
@@ -24,7 +28,7 @@ Match the nearest sibling's robustness and style. Prefer clear straight-line cod
 
 **Test non-trivial logic you add.** Ranking, parsing, validation, search, and other branching behavior need focused tests when the repo has a test runner — or a small scripted check you delete afterward if it doesn't. Running happy-path once is not enough for logic with real edge cases. This is not a license to add a verification subagent.
 
-**Keep instructional prose out of the way.** Long policy/guidance text belongs in docs, tool descriptions kept short, or a sibling markdown file — not sprawling string blobs that make the module hard to read as code.
+**Keep instructional prose out of the way.** Long policy/guidance text belongs in docs, tool descriptions kept short, or a sibling markdown file (e.g. `shared/policy-inject.md` for hook injection strings) — not sprawling string blobs that make the module hard to read as code.
 
 **Make the architecture obvious.** A reader should see in seconds what the program is and where it starts. Put a short file-top comment on non-trivial modules (what this file owns). Mark the process entrypoint clearly (e.g. a one-line comment above `listen` / `main` / the CLI). Prefer fewer helpers: don't extract a one-liner just to name it — that forces the reader to jump around to reconstruct the flow. When a helper, regex, or magic constant is non-obvious, say what it does in a short comment (e.g. slug rules, score boosts). Do not leave a pile of uncommented helpers and opaque `/regex/` for the reader to reverse-engineer.
 
@@ -75,8 +79,14 @@ Default: do the work yourself. Spawn additional agents only when the user explic
 - Leaving one-off scripts or scratch files from this session, or shipping touched code without running the language-standard formatter (or skipping a minimal prettier/`format` script on a new JS/TS repo).
 - Shipping non-trivial branching logic with only a happy-path smoke, or silencing the typechecker with cast stacks instead of fixing types.
 - Helper/abstraction spam with no file-top orientation, no marked entrypoint, and uncommented regex or magic constants the reader must reverse-engineer.
+- Style theater: code that looks professional or layered without earning the complexity (boring flat code is the default).
+- `.then/.catch` CLI/hook entrypoints when `async function main()` would read top to bottom.
+- Chained `map`/`filter`/spread pipelines for multi-step transforms.
+- Duplicating the same install/hook logic in two scripts instead of one shared copy.
+- Abbreviated variable names in tests or smoke scripts (`r`, `cfg`, `mod`, one-letter loop params).
 
 ## Model-specific prompting
 
-- Opus 5: `shared/prompt-opus.md` — verbosity, narration cadence, self-correction noise, thinking-disabled pitfalls. Skill: `prompt-opus-5`.
-- Fable 5: `shared/prompt-fable.md` — long runs, autonomous pipelines, memory, readability, `send_to_user`. Skill: `prompt-fable-5`.
+- Most agents: skill `prompt-general` + `shared/prompt-general.md` — scope, action, plain code, readable output, limited delegation.
+- Opus 5: skill `prompt-opus-5` + `shared/prompt-opus.md` — brevity, narration cadence, self-correction noise, thinking-disabled pitfalls.
+- Fable 5: skill `prompt-fable-5` + `shared/prompt-fable.md` — long runs, autonomous pipelines, memory, readability, `send_to_user`.

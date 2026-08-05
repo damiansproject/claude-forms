@@ -2,12 +2,13 @@
   "name": "claude-forms",
   "version": "1.0.0",
   "private": true,
-  "description": "Anti-overengineering harness for Claude Opus 5 / Fable 5 — skills, rules, and hooks for Claude Code and Cursor",
+  "description": "Anti-overengineering harness for coding agents — skills, rules, and hooks for Claude Code and Cursor",
   "scripts": {
     "sync": "node scripts/sync-platform.js",
     "test": "node scripts/sync-platform.js && node --test tests/*.test.js && node tests/smoke-hooks.js",
     "smoke": "node tests/smoke-hooks.js",
-    "install:user": "node scripts/install-user.js"
+    "install:user": "node scripts/install-user.js",
+    "uninstall:user": "node scripts/uninstall-user.js"
   },
   "engines": {
     "node": ">=18"

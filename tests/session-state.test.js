@@ -9,7 +9,7 @@ const path = require('path');
 const STATE_DIR = path.join(os.tmpdir(), `claude-forms-test-${process.pid}`);
 
 describe('session-state', () => {
-  let mod;
+  let sessionState;
 
   beforeEach(() => {
     process.env.CLAUDE_FORM_STATE_DIR = STATE_DIR;
@@ -19,7 +19,7 @@ describe('session-state', () => {
     delete process.env.CLAUDE_FORM_DISABLED;
     fs.rmSync(STATE_DIR, { recursive: true, force: true });
     delete require.cache[require.resolve('../shared/session-state')];
-    mod = require('../shared/session-state');
+    sessionState = require('../shared/session-state');
   });
 
   afterEach(() => {
@@ -27,33 +27,33 @@ describe('session-state', () => {
   });
 
   it('resets session to defaults', () => {
-    const s = mod.resetSession('s1');
-    assert.equal(s.readCount, 0);
-    assert.equal(s.promptAgentCount, 0);
-    assert.equal(s.allowParallel, false);
+    const state = sessionState.resetSession('session-one');
+    assert.equal(state.readCount, 0);
+    assert.equal(state.promptAgentCount, 0);
+    assert.equal(state.allowParallel, false);
   });
 
   it('bumps read count', () => {
-    mod.resetSession('s1');
-    mod.bumpRead('s1');
-    mod.bumpRead('s1');
-    assert.equal(mod.loadState('s1').readCount, 2);
+    sessionState.resetSession('session-one');
+    sessionState.bumpRead('session-one');
+    sessionState.bumpRead('session-one');
+    assert.equal(sessionState.loadState('session-one').readCount, 2);
   });
 
   it('persists allowParallel after opt-in prompt', () => {
-    mod.resetSession('s1');
-    mod.onUserPrompt('s1', { promptId: 'p1', allowParallel: true });
-    assert.equal(mod.loadState('s1').allowParallel, true);
-    mod.onUserPrompt('s1', { promptId: 'p2', allowParallel: false });
-    assert.equal(mod.loadState('s1').allowParallel, true);
+    sessionState.resetSession('session-one');
+    sessionState.onUserPrompt('session-one', { promptId: 'prompt-one', allowParallel: true });
+    assert.equal(sessionState.loadState('session-one').allowParallel, true);
+    sessionState.onUserPrompt('session-one', { promptId: 'prompt-two', allowParallel: false });
+    assert.equal(sessionState.loadState('session-one').allowParallel, true);
   });
 
   it('resets promptAgentCount on new prompt id', () => {
-    mod.resetSession('s1');
-    const a = mod.tryConsumeAgent('s1');
-    assert.equal(a.allowed, true);
-    assert.equal(mod.loadState('s1').promptAgentCount, 1);
-    mod.onUserPrompt('s1', { promptId: 'next' });
-    assert.equal(mod.loadState('s1').promptAgentCount, 0);
+    sessionState.resetSession('session-one');
+    const agentResult = sessionState.tryConsumeAgent('session-one');
+    assert.equal(agentResult.allowed, true);
+    assert.equal(sessionState.loadState('session-one').promptAgentCount, 1);
+    sessionState.onUserPrompt('session-one', { promptId: 'next-prompt' });
+    assert.equal(sessionState.loadState('session-one').promptAgentCount, 0);
   });
 });

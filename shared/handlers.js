@@ -1,5 +1,6 @@
 'use strict';
 
+// Platform-neutral behavior used by the Claude Code and Cursor hook entrypoints.
 const fs = require('fs');
 const { detectOptIn } = require('./detect-opt-in');
 const {
@@ -22,63 +23,74 @@ const {
 const PRESERVE_STATE_SOURCES = new Set(['resume', 'compact', 'fork']);
 
 function handleSessionStart(sessionId, source) {
-  if (isDisabled()) return { context: null };
-  if (!PRESERVE_STATE_SOURCES.has(source)) resetSession(sessionId);
+  if (isDisabled()) {
+    return { context: null };
+  }
+  if (!PRESERVE_STATE_SOURCES.has(source)) {
+    resetSession(sessionId);
+  }
   return { context: policySummary() };
 }
 
 function handleUserPrompt(sessionId, prompt, promptId) {
-  if (isDisabled()) return { context: null, optedIn: false };
+  if (isDisabled()) {
+    return { context: null, optedIn: false };
+  }
   const optedIn = detectOptIn(prompt || '');
   onUserPrompt(sessionId, { promptId, allowParallel: optedIn });
-  const bits = [];
+  const messageParts = [];
   if (optedIn) {
-    bits.push('[claude-forms] Parallel agents enabled for this session (user opt-in detected).');
+    messageParts.push(
+      '[claude-forms] Parallel agents enabled for this session (user opt-in detected).',
+    );
   }
-  bits.push(userPromptReminder());
-  return { context: bits.join(' '), optedIn };
+  messageParts.push(userPromptReminder());
+  return { context: messageParts.join(' '), optedIn };
 }
 
 function handleTrackRead(sessionId) {
-  if (isDisabled()) return;
+  if (isDisabled()) {
+    return;
+  }
   bumpRead(sessionId);
 }
 
-/**
- * Warn on new-file Write with zero searches; deny instead when
- * CLAUDE_FORM_STRICT_SEARCH=1. Never decides permission on the warn path.
- * @returns {{ context: string|null, deny: boolean }}
- */
 function handlePreWrite(sessionId, toolName, filePath) {
-  if (isDisabled()) return { context: null, deny: false };
+  if (isDisabled()) {
+    return { context: null, deny: false };
+  }
   const state = loadState(sessionId);
-  const isWrite = String(toolName || '').toLowerCase().includes('write');
-  if (!isWrite) return { context: null, deny: false };
-  if (state.readCount > 0) return { context: null, deny: false };
-  if (filePath && fs.existsSync(filePath)) return { context: null, deny: false };
+  const toolNameText = String(toolName || '').toLowerCase();
+  const isWrite = toolNameText.includes('write');
+  if (!isWrite) {
+    return { context: null, deny: false };
+  }
+  if (state.readCount > 0) {
+    return { context: null, deny: false };
+  }
+  if (filePath && fs.existsSync(filePath)) {
+    return { context: null, deny: false };
+  }
   const strict = process.env.CLAUDE_FORM_STRICT_SEARCH === '1';
-  return { context: searchFirstWarning(filePath, strict), deny: strict };
+  const context = searchFirstWarning(filePath, strict);
+  return { context, deny: strict };
 }
 
-/**
- * Hard cap Agent/Task/Workflow spawning.
- * @returns {{ allowed: boolean, reason: string, warn: string }}
- */
 function handlePreAgent(sessionId) {
-  if (isDisabled()) return { allowed: true, reason: '', warn: '' };
-  const result = tryConsumeAgent(sessionId);
-  return {
-    allowed: result.allowed,
-    reason: result.reason,
-    warn: result.warnNearLimit ? result.reason : '',
-  };
+  if (isDisabled()) {
+    return { allowed: true, reason: '', warn: '' };
+  }
+  return tryConsumeAgent(sessionId);
 }
 
-/** Grounding reminder, shown once per session. */
 function handleStop(sessionId) {
-  if (isDisabled()) return { context: null };
+  if (isDisabled()) {
+    return { context: null };
+  }
   const state = loadState(sessionId);
-  if (state.stopReminded) return { context: null };
+  if (state.stopReminded) {
+    return { context: null };
+  }
   state.stopReminded = true;
   saveState(sessionId, state);
   return { context: stopGroundingReminder() };

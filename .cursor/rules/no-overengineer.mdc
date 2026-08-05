@@ -1,12 +1,12 @@
 ---
 description: >-
-  Prevents overengineering, over-scoping, and reinventing existing code for Claude
-  Opus 5 and Fable 5. Applies when implementing features, fixing bugs, refactoring,
-  writing new files/utilities, or spawning subagents.
+  Prevents overengineering, over-scoping, and reinventing existing code. Applies
+  when implementing features, fixing bugs, refactoring, writing new
+  files/utilities, or spawning subagents.
 alwaysApply: true
 ---
 
-# No overengineering (Claude Opus 5 / Fable 5)
+# No overengineering
 
 Deliver only what was asked. Do not widen scope, refactor adjacently, or invent abstractions for hypothetical futures.
 
@@ -16,7 +16,7 @@ When extending an existing pattern, match the nearest live sibling. If the draft
 
 Default: do the work yourself. Do not spawn subagents to verify your own work. Extra agents only for large independent parallel tracks or when the user explicitly opts in.
 
-Readable code over fortress code. Extra robustness and security hardening only when requested (or the task is explicitly about that). Prefer rewriting a local unit over stacking patches that leave dead paths. Minimal file count is not enough: handle edges you own, keep types honest (no cast stacks), test non-trivial branching you add, keep long instructional prose out of hot code paths. Make architecture obvious — short file-top orientation, mark the entrypoint, fewer jump-around helpers, comment non-obvious regex/magic. Delete one-off scripts you created. Update docs your change makes wrong. Always run the language-standard formatter on files you touched (add a minimal prettier/`format` script on new JS/TS repos).
+Prefer dumb boring flat code over style theater (factories, wrappers, extract-for-naming, Result ceremony). Write so a reader with little programming experience can follow the order of operations. Use descriptive names, braces, and explicit `if` statements, loops, and `async`/`await` when clearer. Simple ternaries or collection methods are fine for one obvious choice or transformation; do not nest or chain them to compress several steps. Use `async function main()` for CLI/hook entrypoints; `for` loops for multi-step transforms; one shared copy for duplicate install/uninstall logic; full-word names in tests. Readability is not line count. Readable code over fortress code. Extra robustness and security hardening only when requested (or the task is explicitly about that). Prefer rewriting a local unit over stacking patches that leave dead paths. Minimal file count is not enough: handle edges you own, keep types honest (no cast stacks), test non-trivial branching you add, keep long instructional prose out of hot code paths. Make architecture obvious — short file-top orientation, mark the entrypoint, fewer jump-around helpers, comment non-obvious regex/magic. Delete one-off scripts you created. Update docs your change makes wrong. Always run the language-standard formatter on files you touched (add a minimal prettier/`format` script on new JS/TS repos).
 
 Lead with the outcome. Claim only work evidenced by tool results from this session. Final user message: plain language for a reader who saw none of the work — drop working shorthand.
 

@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, writeJson, sessionId } = require('../../shared/io');
+const { runHook } = require('../../shared/run-hook');
+const { writeJson, sessionId } = require('../../shared/io');
 const { handleTrackRead } = require('../../shared/handlers');
 
-readStdin()
-  .then((raw) => {
-    const input = parseInput(raw);
-    handleTrackRead(sessionId(input));
-    writeJson({});
-  })
-  .catch(() => {
-    writeJson({});
-    process.exit(0);
-  });
+function onFailure() {
+  writeJson({});
+  process.exit(0);
+}
+
+async function main(input) {
+  handleTrackRead(sessionId(input));
+  writeJson({});
+}
+
+runHook(main, onFailure);

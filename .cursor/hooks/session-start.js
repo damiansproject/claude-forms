@@ -1,20 +1,22 @@
 #!/usr/bin/env node
 'use strict';
 
-const { readStdin, parseInput, writeJson, sessionId } = require('../../shared/io');
+const { runHook } = require('../../shared/run-hook');
+const { writeJson, sessionId } = require('../../shared/io');
 const { handleSessionStart } = require('../../shared/handlers');
 
-readStdin()
-  .then((raw) => {
-    const input = parseInput(raw);
-    const { context } = handleSessionStart(sessionId(input), input.source);
-    if (context) {
-      writeJson({ additional_context: context });
-    } else {
-      writeJson({});
-    }
-  })
-  .catch(() => {
+function onFailure() {
+  writeJson({});
+  process.exit(0);
+}
+
+async function main(input) {
+  const { context } = handleSessionStart(sessionId(input), input.source);
+  if (context) {
+    writeJson({ additional_context: context });
+  } else {
     writeJson({});
-    process.exit(0);
-  });
+  }
+}
+
+runHook(main, onFailure);

@@ -4,16 +4,18 @@
 /**
  * Install claude-forms for all projects (user-level).
  * Usage: node scripts/install-user.js [--dry-run]
- *
- * Hook fragments are derived from the repo's `.claude/settings.json` and
- * `.cursor/hooks.json` so they cannot drift from the project drop-in.
- * Skills/rules: Claude paths are canonical; Cursor mirrors come from `npm run sync`
- * (install copies the committed `.cursor/rules` / skills mirrors).
  */
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const {
+  claudeHookFragment,
+  cursorHookFragment,
+  mergeClaudeHooks,
+  mergeCursorHooks,
+  readJsonFile,
+} = require('./install-shared');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -33,167 +35,116 @@ const PATHS = {
   cursorSkills: path.join(HOME, '.cursor', 'skills'),
 };
 
-function log(msg) {
-  console.log(DRY_RUN ? `[dry-run] ${msg}` : msg);
+function log(message) {
+  if (DRY_RUN) {
+    console.log(`[dry-run] ${message}`);
+    return;
+  }
+  console.log(message);
 }
 
 function ensureDir(dir) {
-  if (DRY_RUN) return;
+  if (DRY_RUN) {
+    return;
+  }
   fs.mkdirSync(dir, { recursive: true });
 }
 
-function copyTree(srcDir, destDir) {
-  if (!fs.existsSync(srcDir)) return;
-  if (DRY_RUN) {
-    log(`copy ${srcDir}/ -> ${destDir}/`);
+function copyTree(sourceDir, destDir) {
+  if (!fs.existsSync(sourceDir)) {
     return;
   }
-  fs.cpSync(srcDir, destDir, { recursive: true });
-}
-
-function readJson(file, fallback) {
-  if (!fs.existsSync(file)) return fallback;
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
-}
-
-function writeJson(file, data) {
   if (DRY_RUN) {
-    log(`write ${file}`);
+    log(`copy ${sourceDir}/ -> ${destDir}/`);
     return;
   }
-  ensureDir(path.dirname(file));
-  fs.writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`);
+  fs.cpSync(sourceDir, destDir, { recursive: true });
 }
 
-function patchSkillContent(text, root) {
-  const lessons = path.join(root, 'templates', 'LESSONS.md.snippet');
-  return text
-    .replace(
-      /\]\(\.\.\/\.\.\/\.\.\/shared\/([^)]+)\)/g,
-      (_, file) => `](${path.join(root, 'shared', file)})`
-    )
-    .replace(/`templates\/LESSONS\.md\.snippet`/g, `\`${lessons}\``)
-    .replace(/\(project root\)/g, '(install root)');
+function writeJsonFile(filePath, data) {
+  if (DRY_RUN) {
+    log(`write ${filePath}`);
+    return;
+  }
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
-function installSkills(destSkillsDir, root) {
-  const srcSkillsDir = path.join(REPO_ROOT, '.claude', 'skills');
-  if (!fs.existsSync(srcSkillsDir)) return;
-  for (const name of fs.readdirSync(srcSkillsDir)) {
-    const skillDir = path.join(srcSkillsDir, name);
+function patchSkillContent(text, installRoot) {
+  const lessonsPath = path.join(installRoot, 'templates', 'LESSONS.md.snippet');
+  let updated = text.replace(
+    /\]\(\.\.\/\.\.\/\.\.\/shared\/([^)]+)\)/g,
+    (_, fileName) => `](${path.join(installRoot, 'shared', fileName)})`,
+  );
+  updated = updated.replace(/`templates\/LESSONS\.md\.snippet`/g, `\`${lessonsPath}\``);
+  updated = updated.replace(/\(project root\)/g, '(install root)');
+  return updated;
+}
+
+function installSkills(destSkillsDir, installRoot) {
+  const sourceSkillsDir = path.join(REPO_ROOT, '.claude', 'skills');
+  if (!fs.existsSync(sourceSkillsDir)) {
+    return;
+  }
+  for (const skillName of fs.readdirSync(sourceSkillsDir)) {
+    const skillDir = path.join(sourceSkillsDir, skillName);
     const skillFile = path.join(skillDir, 'SKILL.md');
-    if (!fs.statSync(skillDir).isDirectory() || !fs.existsSync(skillFile)) continue;
-    const destFile = path.join(destSkillsDir, name, 'SKILL.md');
-    const content = patchSkillContent(fs.readFileSync(skillFile, 'utf8'), root);
-    if (DRY_RUN) log(`skill ${destFile}`);
-    else {
+    if (!fs.statSync(skillDir).isDirectory() || !fs.existsSync(skillFile)) {
+      continue;
+    }
+    const destFile = path.join(destSkillsDir, skillName, 'SKILL.md');
+    const content = patchSkillContent(fs.readFileSync(skillFile, 'utf8'), installRoot);
+    if (DRY_RUN) {
+      log(`skill ${destFile}`);
+    } else {
       ensureDir(path.dirname(destFile));
       fs.writeFileSync(destFile, content);
     }
   }
 }
 
-function patchRuleContent(text, root) {
-  const policy = path.join(root, 'shared', 'policy.md');
+function patchRuleContent(text, installRoot) {
+  const policyPath = path.join(installRoot, 'shared', 'policy.md');
   return text.replace(
     /see `shared\/policy\.md` in the claude-forms project[^.]*\./g,
-    `see ${policy}.`
+    `see ${policyPath}.`,
   );
 }
 
 function installRules() {
-  const pairs = [
-    ['.claude/rules/no-overengineer.md', PATHS.claudeRules, 'no-overengineer.md'],
-    ['.cursor/rules/no-overengineer.mdc', PATHS.cursorRules, 'no-overengineer.mdc'],
+  const ruleCopies = [
+    {
+      sourceRel: '.claude/rules/no-overengineer.md',
+      destDir: PATHS.claudeRules,
+      fileName: 'no-overengineer.md',
+    },
+    {
+      sourceRel: '.cursor/rules/no-overengineer.mdc',
+      destDir: PATHS.cursorRules,
+      fileName: 'no-overengineer.mdc',
+    },
   ];
-  for (const [rel, destDir, name] of pairs) {
-    const src = path.join(REPO_ROOT, rel);
-    if (!fs.existsSync(src)) continue;
-    const dest = path.join(destDir, name);
-    const text = patchRuleContent(fs.readFileSync(src, 'utf8'), INSTALL_ROOT);
-    if (DRY_RUN) log(`rule ${dest}`);
-    else {
-      ensureDir(destDir);
-      fs.writeFileSync(dest, text);
+
+  for (const ruleCopy of ruleCopies) {
+    const sourcePath = path.join(REPO_ROOT, ruleCopy.sourceRel);
+    if (!fs.existsSync(sourcePath)) {
+      continue;
+    }
+    const destPath = path.join(ruleCopy.destDir, ruleCopy.fileName);
+    const text = patchRuleContent(fs.readFileSync(sourcePath, 'utf8'), INSTALL_ROOT);
+    if (DRY_RUN) {
+      log(`rule ${destPath}`);
+    } else {
+      ensureDir(ruleCopy.destDir);
+      fs.writeFileSync(destPath, text);
     }
   }
 }
 
-/** Rewrite project Claude settings hooks to absolute install-root paths. */
-function claudeHookFragment(root) {
-  const hooks = readJson(path.join(REPO_ROOT, '.claude', 'settings.json'), {}).hooks || {};
-  const out = {};
-  for (const [event, groups] of Object.entries(hooks)) {
-    out[event] = groups.map((group) => ({
-      ...group,
-      hooks: (group.hooks || []).map((h) => ({
-        ...h,
-        args: (h.args || []).map((a) =>
-          String(a).replace('${CLAUDE_PROJECT_DIR}', root)
-        ),
-      })),
-    }));
-  }
-  return out;
-}
-
-/** Rewrite project Cursor hooks.json commands to absolute install-root paths. */
-function cursorHookFragment(root) {
-  const cfg = readJson(path.join(REPO_ROOT, '.cursor', 'hooks.json'), {});
-  const hooks = {};
-  for (const [event, entries] of Object.entries(cfg.hooks || {})) {
-    hooks[event] = entries.map((e) => {
-      const cmd = String(e.command || '');
-      const m = cmd.match(/^node\s+(.+)$/);
-      if (!m) return { ...e };
-      const abs = path.join(root, m[1].trim().replace(/^\.\//, ''));
-      return { ...e, command: `node ${JSON.stringify(abs)}` };
-    });
-  }
-  return { version: cfg.version || 1, hooks };
-}
-
-function isClaudeFormsHook(entry) {
-  const blob = [entry?.command, ...(entry?.args || [])].filter(Boolean).join(' ');
-  return blob.includes('claude-forms');
-}
-
-function mergeClaudeHooks(existing, fragment) {
-  const out = { ...existing };
-  for (const [event, groups] of Object.entries(fragment)) {
-    const prev = out[event] || [];
-    const cleaned = prev
-      .map((group) => ({
-        ...group,
-        hooks: (group.hooks || []).filter((h) => !isClaudeFormsHook(h)),
-      }))
-      .filter((group) => (group.hooks || []).length > 0);
-    out[event] = [...cleaned, ...groups];
-  }
-  return out;
-}
-
-function mergeCursorHooks(existing, fragment) {
-  const out = { ...existing, version: existing.version || fragment.version || 1 };
-  const hooks = { ...(existing.hooks || {}) };
-  for (const [event, entries] of Object.entries(fragment.hooks)) {
-    const prev = hooks[event] || [];
-    hooks[event] = [
-      ...prev.filter((e) => !isClaudeFormsHook(e)),
-      ...entries,
-    ];
-  }
-  // Drop orphaned stop entries from older installs (Cursor stop forces a turn).
-  if (hooks.stop) {
-    hooks.stop = hooks.stop.filter((e) => !isClaudeFormsHook(e));
-    if (hooks.stop.length === 0) delete hooks.stop;
-  }
-  out.hooks = hooks;
-  return out;
-}
-
 function main() {
-  if (!HOME) throw new Error('Could not resolve home directory (HOME/USERPROFILE/os.homedir)');
+  if (!HOME) {
+    throw new Error('Could not resolve home directory (HOME/USERPROFILE/os.homedir)');
+  }
 
   log(`Installing claude-forms to ${INSTALL_ROOT}`);
 
@@ -206,18 +157,18 @@ function main() {
   installSkills(PATHS.cursorSkills, INSTALL_ROOT);
   installRules();
 
-  const claudeSettings = readJson(PATHS.claudeSettings, {});
+  const claudeSettings = readJsonFile(PATHS.claudeSettings);
   claudeSettings.hooks = mergeClaudeHooks(
     claudeSettings.hooks || {},
-    claudeHookFragment(INSTALL_ROOT)
+    claudeHookFragment(REPO_ROOT, INSTALL_ROOT),
   );
-  writeJson(PATHS.claudeSettings, claudeSettings);
+  writeJsonFile(PATHS.claudeSettings, claudeSettings);
 
-  const cursorMerged = mergeCursorHooks(
-    readJson(PATHS.cursorHooksJson, {}),
-    cursorHookFragment(INSTALL_ROOT)
+  const cursorConfig = mergeCursorHooks(
+    readJsonFile(PATHS.cursorHooksJson),
+    cursorHookFragment(REPO_ROOT, INSTALL_ROOT),
   );
-  writeJson(PATHS.cursorHooksJson, cursorMerged);
+  writeJsonFile(PATHS.cursorHooksJson, cursorConfig);
 
   log('Done.');
   log(`  Runtime: ${INSTALL_ROOT}`);

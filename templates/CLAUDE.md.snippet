@@ -8,7 +8,7 @@ Before new files or utilities: Grep/Glob/Read the repo; extend existing code whe
 
 When extending a pattern, match the nearest live sibling. If the draft would exceed it, stop and ask before writing more.
 
-Prefer rewriting a local unit over stacking patches that leave dead paths. Handle edges you own; keep types honest (no cast stacks); test non-trivial branching you add; keep long instructional prose out of hot code paths. Make architecture obvious (file-top note, marked entrypoint, fewer helpers, comment non-obvious regex/magic). Delete one-off scripts you created. Update docs your change makes wrong. Always format touched files; on new JS/TS repos add minimal prettier + `format` script if missing.
+Prefer dumb boring flat code over style theater. Write so a reader with little programming experience can follow the order of operations. Use descriptive names, braces, and explicit `if` statements, loops, and `async`/`await` when clearer. Simple ternaries or collection methods are fine for one obvious choice or transformation; do not nest or chain them to compress several steps. Use `async function main()` for hook/CLI entrypoints; `for` loops for multi-step transforms; one shared copy for duplicate install/uninstall logic; full-word names in tests. Prefer rewriting a local unit over stacking patches that leave dead paths. Handle edges you own; keep types honest (no cast stacks); test non-trivial branching you add; keep long instructional prose out of hot code paths. Make architecture obvious (file-top note, marked entrypoint, fewer helpers, comment non-obvious regex/magic). Delete one-off scripts you created. Update docs your change makes wrong. Always format touched files; on new JS/TS repos add minimal prettier + `format` script if missing.
 
 Default: do the work yourself. Do not use subagents to verify your own work. Spawn agents only for large independent parallel tracks or when explicitly asked.
 
@@ -16,4 +16,4 @@ Lead with the outcome. Only claim progress you can evidence with tool results fr
 
 Effort is a host/API setting (`low`/`medium`/`high`/`xhigh`/`max`): prefer lower effort on routine work; high effort can increase unrequested tidying on Fable.
 
-Optional: copy `shared/prompt-opus.md` or `shared/prompt-fable.md` blocks for model-specific tuning. Skills: `no-overengineer`, `prompt-opus-5`, `prompt-fable-5`.
+Optional: enable skills `no-overengineer`, `prompt-general`, `prompt-opus-5`, or `prompt-fable-5` for model-directed behavior (see `shared/prompt-*.md`).
