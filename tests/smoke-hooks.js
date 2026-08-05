@@ -96,7 +96,7 @@ console.log('Smoke: Claude Code hooks');
   check('strict mode denies write without reads', /"permissionDecision":"deny"/.test(r.stdout), r.stdout);
 
   r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
-  check('first stop shows reminder', /systemMessage/.test(r.stdout), r.stdout);
+  check('first stop shows reminder', /systemMessage/.test(r.stdout) && /plain language/i.test(r.stdout), r.stdout);
   r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
   check('second stop is silent', r.stdout.trim() === '', r.stdout);
 }
@@ -116,6 +116,50 @@ console.log('Smoke: Cursor hooks');
 
   r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid });
   check('cursor agent allow after opt-in', r.status === 0 && !/deny/i.test(r.stdout), r.stdout);
+
+  // Fresh session without opt-in: first agent ok, second denied.
+  const cid2 = 'smoke-cursor-budget';
+  runHook('.cursor/hooks/session-start.js', { conversation_id: cid2 });
+  runHook('.cursor/hooks/before-submit-prompt.js', {
+    conversation_id: cid2,
+    prompt: 'fix the bug',
+  });
+  r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid2 });
+  check('cursor first agent allowed', r.status === 0 && !/"permission"\s*:\s*"deny"/.test(r.stdout), r.stdout);
+  r = runHook('.cursor/hooks/pre-agent-cap.js', { conversation_id: cid2 });
+  check('cursor second agent denied', /"permission"\s*:\s*"deny"/i.test(r.stdout), r.stdout);
+
+  r = runHook('.cursor/hooks/pre-write-search.js', {
+    conversation_id: cid2,
+    tool_name: 'Write',
+    tool_input: { file_path: path.join(STATE_DIR, 'cursor-new.js'), content: 'x' },
+  });
+  check('cursor write warn without reads', /Search the repo|claude-forms/i.test(r.stdout), r.stdout);
+  check('cursor write warn is not a deny', !/"permission"\s*:\s*"deny"/.test(r.stdout), r.stdout);
+
+  r = runHook(
+    '.cursor/hooks/pre-write-search.js',
+    {
+      conversation_id: 'smoke-cursor-strict',
+      tool_name: 'Write',
+      tool_input: { file_path: path.join(STATE_DIR, 'cursor-strict.js'), content: 'x' },
+    },
+    { CLAUDE_FORM_STRICT_SEARCH: '1' }
+  );
+  check('cursor strict denies write without reads', /"permission"\s*:\s*"deny"/.test(r.stdout), r.stdout);
+}
+
+console.log('Smoke: platform mirrors');
+{
+  const skills = ['no-overengineer', 'prompt-opus-5', 'prompt-fable-5'];
+  for (const name of skills) {
+    const a = fs.readFileSync(path.join(ROOT, '.claude', 'skills', name, 'SKILL.md'));
+    const b = fs.readFileSync(path.join(ROOT, '.cursor', 'skills', name, 'SKILL.md'));
+    check(`skill ${name} mirrors`, Buffer.compare(a, b) === 0);
+  }
+  const rule = fs.readFileSync(path.join(ROOT, '.cursor', 'rules', 'no-overengineer.mdc'), 'utf8');
+  check('cursor rule has alwaysApply frontmatter', /alwaysApply:\s*true/.test(rule));
+  check('cursor rule has policy body', /Deliver only what was asked/.test(rule));
 }
 
 fs.rmSync(STATE_DIR, { recursive: true, force: true });

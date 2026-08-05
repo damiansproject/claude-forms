@@ -70,7 +70,7 @@ function claudeContext(eventName, additionalContext, extra = {}) {
 }
 
 /**
- * Cursor preToolUse deny.
+ * Cursor deny for preToolUse / subagentStart.
  * @param {string} reason
  */
 function cursorDeny(reason) {

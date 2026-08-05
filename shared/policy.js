@@ -1,18 +1,5 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-
-const POLICY_PATH = path.join(__dirname, 'policy.md');
-
-function readPolicy() {
-  try {
-    return fs.readFileSync(POLICY_PATH, 'utf8').trim();
-  } catch {
-    return '';
-  }
-}
-
 /** Short injection for SessionStart / reminders (keep token cost low). */
 function policySummary() {
   return [
@@ -23,6 +10,15 @@ function policySummary() {
     'Default: do the work yourself. Extra agents only for large independent parallel tracks or when the user opts in.',
     'Do not add verify/double-check/subagent-review scaffolding for your own work.',
   ].join(' ');
+}
+
+/** Per-prompt soft reminder (UserPromptSubmit / beforeSubmitPrompt). */
+function userPromptReminder() {
+  return (
+    '[claude-forms] Stay in scope. Search before inventing. Match the nearest live sibling; ' +
+    'if the draft would exceed it, stop and ask before writing more. Prefer doing the work yourself ' +
+    'unless the user asked for parallel agents.'
+  );
 }
 
 function searchFirstWarning(filePath, strict) {
@@ -41,14 +37,14 @@ function searchFirstWarning(filePath, strict) {
 function stopGroundingReminder() {
   return (
     '[claude-forms] Lead with the outcome. Before claiming progress, audit each claim against a tool result from this session. ' +
-    'If something is unverified, say so. Do not expand scope beyond what was asked.'
+    'If something is unverified, say so. Do not expand scope beyond what was asked. ' +
+    'Final user message: plain language for a reader who saw none of the work — no working abbreviations, arrow chains, or labels you invented mid-run.'
   );
 }
 
 module.exports = {
-  POLICY_PATH,
-  readPolicy,
   policySummary,
+  userPromptReminder,
   searchFirstWarning,
   stopGroundingReminder,
 };

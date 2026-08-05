@@ -5,8 +5,14 @@ const os = require('os');
 const path = require('path');
 
 const STATE_DIR = process.env.CLAUDE_FORM_STATE_DIR || path.join(os.tmpdir(), 'claude-forms');
-const DEFAULT_BUDGET = Number(process.env.CLAUDE_FORM_AGENT_BUDGET || 1);
-const PARALLEL_BUDGET = Number(process.env.CLAUDE_FORM_PARALLEL_BUDGET || 8);
+
+function parseBudget(raw, fallback) {
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 1 ? n : fallback;
+}
+
+const DEFAULT_BUDGET = parseBudget(process.env.CLAUDE_FORM_AGENT_BUDGET, 1);
+const PARALLEL_BUDGET = parseBudget(process.env.CLAUDE_FORM_PARALLEL_BUDGET, 8);
 
 /**
  * @param {string} sessionId
@@ -64,18 +70,6 @@ function resetSession(sessionId) {
 
 /**
  * @param {string} sessionId
- * @param {boolean} allow
- */
-function setAllowParallel(sessionId, allow) {
-  const state = loadState(sessionId);
-  if (allow) state.allowParallel = true;
-  saveState(sessionId, state);
-  return state;
-}
-
-/**
- * New user prompt: reset per-prompt agent counter; optionally set parallel opt-in.
- * @param {string} sessionId
  * @param {{ promptId?: string, allowParallel?: boolean }} opts
  */
 function onUserPrompt(sessionId, opts = {}) {
@@ -107,8 +101,7 @@ function bumpRead(sessionId) {
  */
 function agentBudget(sessionId) {
   const state = loadState(sessionId);
-  if (state.allowParallel) return PARALLEL_BUDGET;
-  return Number.isFinite(DEFAULT_BUDGET) ? DEFAULT_BUDGET : 1;
+  return state.allowParallel ? PARALLEL_BUDGET : DEFAULT_BUDGET;
 }
 
 /**
@@ -161,7 +154,6 @@ module.exports = {
   loadState,
   saveState,
   resetSession,
-  setAllowParallel,
   onUserPrompt,
   bumpRead,
   agentBudget,

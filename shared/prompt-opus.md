@@ -9,9 +9,18 @@ Distilled from [Prompting Claude Opus 5](https://platform.claude.com/docs/en/bui
 - Delegates to subagents more readily — the claude-forms harness caps this unless the user opts in.
 - User-facing responses and written deliverables tend to be longer than prior Opus models.
 
+## Effort
+
+Effort ([docs](https://platform.claude.com/docs/en/build-with-claude/effort)) controls thinking volume and tool-call thoroughness, not visible length. Set it in the host/API (`output_config.effort`, Cursor / Claude Code effort UI) — this harness cannot flip it.
+
+- Start at `high` (API default). Use `low` / `medium` liberally wherever quality holds — Opus 5 is strong at lower effort.
+- Step up to `xhigh` / `max` only for demanding coding and agentic work your evals need.
+- Prefer thinking on + lower effort over disabling thinking.
+- Hold effort steady within a cached conversation (changing it breaks prefix cache).
+
 ## Response length
 
-Effort controls thinking volume, not reliably visible length. Prompt for brevity explicitly when needed:
+Effort does not reliably shorten visible answers. Prompt for brevity explicitly when needed:
 
 ```text
 Keep responses focused, brief, and concise. Keep disclaimers and caveats short, and spend most of the response on the main answer. When asked to explain something, give a high-level summary unless an in-depth explanation is specifically requested.

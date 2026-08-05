@@ -1,11 +1,12 @@
 ---
 name: prompt-opus-5
 description: >-
-  Prompting patterns for Claude Opus 5: response verbosity, agentic narration
-  cadence, written deliverable length, task scope, subagent delegation limits,
-  self-correction narration, and thinking-disabled pitfalls. Use when tuning
-  prompts, rules, skills, or CLAUDE.md for Opus 5, or when Opus output is too
-  verbose, over-verifies, spawns too many subagents, or narrates minor fixes.
+  Prompting patterns for Claude Opus 5: effort levels, response verbosity,
+  agentic narration cadence, written deliverable length, task scope, subagent
+  delegation limits, self-correction narration, and thinking-disabled pitfalls.
+  Use when tuning prompts, rules, skills, or CLAUDE.md for Opus 5, or when Opus
+  output is too verbose, over-verifies, spawns too many subagents, or narrates
+  minor fixes.
 ---
 
 # Prompting Claude Opus 5
@@ -16,13 +17,15 @@ Read [shared/prompt-opus.md](../../../shared/prompt-opus.md). Scope and search r
 
 | Symptom | Add / remove |
 |---|---|
-| Responses too long | Brevity block in prompt-opus.md |
+| Slow / expensive on routine work | Lower host effort to `medium` / `low` (see Effort in prompt-opus.md) |
+| Hard agentic coding needs more depth | Raise host effort to `xhigh` (keep thinking on) |
+| Responses too long | Brevity block in prompt-opus.md (effort ≠ length) |
 | Too much status narration | Progress-update cadence block |
 | Bloated reports/docs | Written-deliverable length block |
 | Extra verification passes | **Remove** verify / double-check instructions |
 | Subagent sprawl | Harness caps agents; add delegation block only when user opts in |
 | Noisy "I was wrong earlier" | Self-correction narration block |
-| Tool calls leaking as text (thinking off) | Thinking-disabled combined block |
+| Tool calls leaking as text (thinking off) | Prefer lower effort + thinking on; else thinking-disabled block |
 
 ## Harness interaction
 

@@ -25,11 +25,14 @@ Opt-in persists for the rest of the session, including across compaction and res
 ```
 claude-forms/
   shared/                 # policy, prompt-opus/fable refs, session state, handlers
-  .claude/                # Claude Code settings, rules, skills, hooks
-  .cursor/                # Cursor hooks.json, rules, skills, hooks
+  .claude/                # Claude Code settings, rules, skills, hooks (canonical)
+  .cursor/                # Cursor hooks + mirrored rules/skills (from .claude via npm run sync)
   templates/              # CLAUDE.md.snippet, LESSONS.md.snippet
+  scripts/                # sync-platform, install-user
   tests/
 ```
+
+Edit skills/rules under `.claude/`, then run `npm run sync` (also runs at the start of `npm test`).
 
 ## Skills
 
@@ -48,21 +51,24 @@ Shared reference text (copy into `CLAUDE.md` or read via skills): `shared/prompt
 Copy into a target repo (keep `shared/` next to `.claude/` and `.cursor/`):
 
 ```bash
-rsync -a shared .claude .cursor templates/ /path/to/project/
+# Unix
+rsync -a shared .claude .cursor templates /path/to/project/
+# Windows (PowerShell)
+Copy-Item -Recurse shared, .claude, .cursor, templates /path/to/project/
 # optional: append templates/CLAUDE.md.snippet into the project's CLAUDE.md
 # optional: copy templates/LESSONS.md.snippet → LESSONS.md for Fable long-run memory
 ```
 
 ### System-wide (all projects)
 
-Install once; hooks, rules, and skills apply everywhere. Merges with your existing Claude/Cursor hook config (does not remove other hooks).
+Install once; hooks, rules, and skills apply everywhere. Merges with your existing Claude/Cursor hook config (does not remove other hooks). Works on Windows, macOS, and Linux (uses `fs.cpSync`, no `rsync`).
 
 ```bash
 cd /path/to/claude-forms
 npm run install:user
 ```
 
-Default install root: `~/.local/share/claude-forms`. Override with `CLAUDE_FORM_INSTALL_DIR`.
+Default install root: `~/.local/share/claude-forms` (or `%USERPROFILE%\.local\share\claude-forms` on Windows). Override with `CLAUDE_FORM_INSTALL_DIR`.
 
 Installs:
 - Runtime (`shared/`, hooks) → install root
@@ -86,23 +92,17 @@ Same as system-wide but by hand: copy rules/skills, merge hooks with absolute pa
 | `CLAUDE_FORM_AGENT_BUDGET` | Per-prompt agent budget when not opted in (default `1`) |
 | `CLAUDE_FORM_PARALLEL_BUDGET` | Budget when opted in (default `8`) |
 | `CLAUDE_FORM_STRICT_SEARCH=1` | Deny (instead of warn on) new-file writes with zero Read/Grep/Glob in the session |
-| `CLAUDE_FORM_STATE_DIR` | Override `/tmp/claude-forms` state directory |
+| `CLAUDE_FORM_STATE_DIR` | Override state directory (default: `os.tmpdir()/claude-forms`) |
 
 ## Platform notes
 
-- **Claude Code:** warn paths inject `additionalContext` only — they never set `permissionDecision`, so your normal permission prompts are untouched. Session state survives `compact`/`resume`/`fork` (SessionStart `source`) and the policy summary is re-injected after compaction.
+- **Claude Code:** warn paths inject `additionalContext` only — they never set `permissionDecision`, so your normal permission prompts are untouched. Session state survives `compact`/`resume`/`fork` (SessionStart `source`) and the policy summary is re-injected after compaction. Search-before-write hooks match `Write` only (`Edit` is existing-file).
 - **Cursor:** state is keyed by `conversation_id`. `beforeSubmitPrompt` can't inject agent-visible context (the always-apply rule carries the policy); opt-in detection surfaces as a `user_message`. There is no stop hook — Cursor's `stop` event only supports `followup_message`, which would force an extra agent turn.
 
 ## Tests
 
 ```bash
-npm test
+npm test          # sync platform mirrors, unit tests, smoke
+npm run smoke     # hooks smoke only
+npm run sync      # refresh .cursor skills/rules from .claude
 ```
-
-## Rename note
-
-This package lives at `claude-forms`. If you still have a checkout named `claude-code-forms` / `claude-code-form`, rename the directory (and optionally `gh repo rename claude-forms` on GitHub). Do not force-push.
-
-## v2 ideas
-
-- Optional stricter defaults for search-before-write

@@ -20,7 +20,7 @@
     "preToolUse": [
       {
         "command": "node .cursor/hooks/pre-write-search.js",
-        "matcher": "Write|Edit"
+        "matcher": "Write"
       }
     ],
     "subagentStart": [

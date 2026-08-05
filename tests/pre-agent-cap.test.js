@@ -101,6 +101,8 @@ describe('pre-agent budget', () => {
   it('stop reminder fires once per session', () => {
     const first = handlers.handleStop('agent-test');
     assert.ok(first.context);
+    assert.match(first.context, /plain language/i);
+    assert.match(first.context, /tool result/i);
     const second = handlers.handleStop('agent-test');
     assert.equal(second.context, null);
   });

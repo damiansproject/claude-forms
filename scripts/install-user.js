@@ -7,21 +7,22 @@
  *
  * Hook fragments are derived from the repo's `.claude/settings.json` and
  * `.cursor/hooks.json` so they cannot drift from the project drop-in.
+ * Skills/rules: Claude paths are canonical; Cursor mirrors come from `npm run sync`
+ * (install copies the committed `.cursor/rules` / skills mirrors).
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { spawnSync } = require('child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DRY_RUN = process.argv.includes('--dry-run');
-const HOME = process.env.HOME || '';
+const HOME = process.env.HOME || process.env.USERPROFILE || os.homedir();
 const INSTALL_ROOT =
   process.env.CLAUDE_FORM_INSTALL_DIR ||
   path.join(process.env.XDG_DATA_HOME || path.join(HOME, '.local', 'share'), 'claude-forms');
 
 const PATHS = {
-  installRoot: INSTALL_ROOT,
   claudeHooks: path.join(INSTALL_ROOT, '.claude', 'hooks'),
   cursorHooks: path.join(INSTALL_ROOT, '.cursor', 'hooks'),
   claudeSettings: path.join(HOME, '.claude', 'settings.json'),
@@ -44,14 +45,10 @@ function ensureDir(dir) {
 function copyTree(srcDir, destDir) {
   if (!fs.existsSync(srcDir)) return;
   if (DRY_RUN) {
-    log(`rsync ${srcDir}/ -> ${destDir}/`);
+    log(`copy ${srcDir}/ -> ${destDir}/`);
     return;
   }
-  ensureDir(destDir);
-  const result = spawnSync('rsync', ['-a', `${srcDir}/`, `${destDir}/`], { encoding: 'utf8' });
-  if (result.status !== 0) {
-    throw new Error(`rsync failed: ${result.stderr || result.stdout}`);
-  }
+  fs.cpSync(srcDir, destDir, { recursive: true });
 }
 
 function readJson(file, fallback) {
@@ -79,7 +76,8 @@ function patchSkillContent(text, root) {
     .replace(/\(project root\)/g, '(install root)');
 }
 
-function installSkills(srcSkillsDir, destSkillsDir, root) {
+function installSkills(destSkillsDir, root) {
+  const srcSkillsDir = path.join(REPO_ROOT, '.claude', 'skills');
   if (!fs.existsSync(srcSkillsDir)) return;
   for (const name of fs.readdirSync(srcSkillsDir)) {
     const skillDir = path.join(srcSkillsDir, name);
@@ -144,10 +142,13 @@ function cursorHookFragment(root) {
   const cfg = readJson(path.join(REPO_ROOT, '.cursor', 'hooks.json'), {});
   const hooks = {};
   for (const [event, entries] of Object.entries(cfg.hooks || {})) {
-    hooks[event] = entries.map((e) => ({
-      ...e,
-      command: String(e.command || '').replace(/^node\s+/, `node ${root}/`),
-    }));
+    hooks[event] = entries.map((e) => {
+      const cmd = String(e.command || '');
+      const m = cmd.match(/^node\s+(.+)$/);
+      if (!m) return { ...e };
+      const abs = path.join(root, m[1].trim().replace(/^\.\//, ''));
+      return { ...e, command: `node ${JSON.stringify(abs)}` };
+    });
   }
   return { version: cfg.version || 1, hooks };
 }
@@ -192,7 +193,7 @@ function mergeCursorHooks(existing, fragment) {
 }
 
 function main() {
-  if (!HOME) throw new Error('HOME is not set');
+  if (!HOME) throw new Error('Could not resolve home directory (HOME/USERPROFILE/os.homedir)');
 
   log(`Installing claude-forms to ${INSTALL_ROOT}`);
 
@@ -201,8 +202,8 @@ function main() {
   copyTree(path.join(REPO_ROOT, '.cursor', 'hooks'), PATHS.cursorHooks);
   copyTree(path.join(REPO_ROOT, 'templates'), path.join(INSTALL_ROOT, 'templates'));
 
-  installSkills(path.join(REPO_ROOT, '.claude', 'skills'), PATHS.claudeSkills, INSTALL_ROOT);
-  installSkills(path.join(REPO_ROOT, '.cursor', 'skills'), PATHS.cursorSkills, INSTALL_ROOT);
+  installSkills(PATHS.claudeSkills, INSTALL_ROOT);
+  installSkills(PATHS.cursorSkills, INSTALL_ROOT);
   installRules();
 
   const claudeSettings = readJson(PATHS.claudeSettings, {});

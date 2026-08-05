@@ -22,7 +22,15 @@ Don't add features, refactor, or introduce abstractions beyond what the task req
 When extending an existing pattern, match the nearest live sibling. If the draft would exceed it in modes, schema, or layers, stop, state the smallest matching slice, and ask before doing more.
 ```
 
-Use [effort](https://platform.claude.com/docs/en/build-with-claude/effort) as the primary cost/intelligence knob: default `high`, `xhigh` for hardest work, `medium`/`low` for routine tasks.
+[Effort](https://platform.claude.com/docs/en/build-with-claude/effort) is the primary cost/intelligence knob (host/API setting — this harness cannot flip it):
+
+| Level | Use when |
+|---|---|
+| `high` (default) | Most tasks |
+| `xhigh` | Hardest long-horizon / capability-sensitive work |
+| `medium` / `low` | Routine work — still strong; step down if the task finishes but overworks or tidies beyond the ask |
+
+High / `xhigh` correlates with unrequested tidying and refactor. Prefer stepping effort down over stacking more anti-refactor prompt text. Hold effort steady within a cached conversation.
 
 ## Brevity and checkpoints
 
@@ -105,7 +113,7 @@ Store one lesson per file with a one-line summary at the top. Record corrections
 Bootstrap from history when useful:
 
 ```text
-Reflect on the previous sessions we've had together. Use subagents to identify core themes and lessons, and store them in [X]. Make sure you know to reference [X] for future use.
+Reflect on the previous sessions we've had together. Identify core themes and lessons, and store them in [X]. Make sure you know to reference [X] for future use.
 ```
 
 ## send_to_user tool (async agents)

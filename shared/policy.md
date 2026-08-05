@@ -25,13 +25,15 @@ If the draft would exceed that precedent — more modes, a heavier schema, extra
 layers, or hooks for steps that do not exist yet — stop. State the smallest
 slice that matches the precedent, and ask before doing more. Do not write the
 fat file first. An authorized next step is not a license to port a full sibling
-system or future roadmap.
+system or future roadmap. The same rule applies when authoring or extending
+skills: if the skill's steps would exceed the nearest live sibling skill, stop
+and ask.
 
 ## Evidence over narration
 
 Before reporting progress, audit each claim against a tool result from this session. Only report work you can point to evidence for; if something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.
 
-Lead with the outcome. Your first sentence after finishing should answer "what happened" or "what did you find." Supporting detail comes after.
+Lead with the outcome. Your first sentence after finishing should answer "what happened" or "what did you find." Supporting detail comes after. After a long run, write the final user message for a reader who saw none of the work: plain language; no working abbreviations, arrow chains, or labels invented mid-run.
 
 ## Delegation
 

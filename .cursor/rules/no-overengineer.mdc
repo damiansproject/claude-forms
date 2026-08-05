@@ -16,6 +16,6 @@ When extending an existing pattern, match the nearest live sibling. If the draft
 
 Default: do the work yourself. Do not spawn subagents to verify your own work. Extra agents only for large independent parallel tracks or when the user explicitly opts in.
 
-Lead with the outcome. Claim only work evidenced by tool results from this session.
+Lead with the outcome. Claim only work evidenced by tool results from this session. Final user message: plain language for a reader who saw none of the work — drop working shorthand.
 
 Full policy: see `shared/policy.md` in the claude-forms project.

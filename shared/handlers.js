@@ -13,6 +13,7 @@ const {
 } = require('./session-state');
 const {
   policySummary,
+  userPromptReminder,
   searchFirstWarning,
   stopGroundingReminder,
 } = require('./policy');
@@ -34,9 +35,7 @@ function handleUserPrompt(sessionId, prompt, promptId) {
   if (optedIn) {
     bits.push('[claude-forms] Parallel agents enabled for this session (user opt-in detected).');
   }
-  bits.push(
-    '[claude-forms] Stay in scope. Search before inventing. Match the nearest live sibling; if the draft would exceed it, stop and ask before writing more. Prefer doing the work yourself unless the user asked for parallel agents.'
-  );
+  bits.push(userPromptReminder());
   return { context: bits.join(' '), optedIn };
 }
 

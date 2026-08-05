@@ -17,14 +17,15 @@ Read [shared/prompt-fable.md](../../../shared/prompt-fable.md). Scope, evidence,
 | Situation | Use block in prompt-fable.md |
 |---|---|
 | Re-planning instead of acting | Act when ready |
-| Unrequested refactors at high effort | Scope / no overengineering |
+| Unrequested refactors at high effort | Lower host effort first; reinforce Scope / no overengineering |
+| Routine task overworks | Step host effort to `medium` / `low` |
 | Ending on "I'll…" without tools | Autonomous pipelines |
 | False progress on long runs | Progress claims (also in policy) |
 | User asked a question, got a patch | Boundaries / assessment vs fix |
 | Parallel work (user opted in) | Parallel subagents |
-| Overnight / many tool calls | Readability summary |
+| Overnight / many tool calls | Readability summary (also Stop reinject) |
 | Repeated long projects | Memory / lessons + `templates/LESSONS.md.snippet` |
-| Async UX needs verbatim mid-run messages | send_to_user tool + elicitation |
+| Async UX needs verbatim mid-run messages | send_to_user tool |
 | Premature "new session" suggestions | Context budget reassurance |
 | Legacy skills hurt quality | Scaffolding audit section |
 
