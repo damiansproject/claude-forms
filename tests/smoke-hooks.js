@@ -96,7 +96,14 @@ console.log('Smoke: Claude Code hooks');
   check('strict mode denies write without reads', /"permissionDecision":"deny"/.test(r.stdout), r.stdout);
 
   r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
-  check('first stop shows reminder', /systemMessage/.test(r.stdout) && /plain language/i.test(r.stdout) && /formatter/i.test(r.stdout), r.stdout);
+  check(
+    'first stop shows reminder',
+    /systemMessage/.test(r.stdout) &&
+      /plain language/i.test(r.stdout) &&
+      /formatter/i.test(r.stdout) &&
+      /edges you own|non-trivial/i.test(r.stdout),
+    r.stdout
+  );
   r = runHook('.claude/hooks/stop-ground.js', { session_id: sid });
   check('second stop is silent', r.stdout.trim() === '', r.stdout);
 }

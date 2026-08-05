@@ -2,13 +2,13 @@
 
 ## Scope and search (claude-forms)
 
-Deliver what was asked, at the scope intended. Don't add features, refactors, helpers, or abstractions beyond the task. Simplest thing that works. Extra robustness and security hardening only when requested.
+Deliver what was asked, at the scope intended. Don't add features, refactors, helpers, or abstractions beyond the task. Simplest thing that works — few files are not enough if the code is brittle or unreadable. Extra robustness and security hardening only when requested.
 
 Before new files or utilities: Grep/Glob/Read the repo; extend existing code when it fits. Don't reinvent.
 
 When extending a pattern, match the nearest live sibling. If the draft would exceed it, stop and ask before writing more.
 
-Prefer rewriting a local unit over stacking patches that leave dead paths. Delete one-off scripts you created. Update docs your change makes wrong. Run the repo's existing formatter on files you touched.
+Prefer rewriting a local unit over stacking patches that leave dead paths. Handle edges you own; keep types honest (no cast stacks); test non-trivial branching you add; keep long instructional prose out of hot code paths. Delete one-off scripts you created. Update docs your change makes wrong. Run the repo's existing formatter on files you touched.
 
 Default: do the work yourself. Do not use subagents to verify your own work. Spawn agents only for large independent parallel tracks or when explicitly asked.
 

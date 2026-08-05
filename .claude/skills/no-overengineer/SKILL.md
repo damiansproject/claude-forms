@@ -24,11 +24,13 @@ Read and follow [shared/policy.md](../../../shared/policy.md) (project root). Su
 - No drive-by refactors, new helpers, abstractions, feature flags, or speculative error handling.
 - Extra robustness / security hardening only when requested (or the task is explicitly about that).
 - Prefer rewriting a local unit over stacking patches that leave dead paths; delete obsolete code your change replaced.
+- Minimal files ≠ done: handle edges you own, keep types honest (no `as unknown as` stacks), keep long instructional prose out of hot paths.
 - Do not spawn subagents to verify your own work. Do work yourself unless the user asked for parallel agents or the task is large and independently parallelizable.
 - Do not add "final verification" scaffolding.
 
 ## When finishing
 
+- Exercise edges you own; add or run focused tests for non-trivial branching you introduced (not a verify-subagent).
 - Delete one-off scripts / scratch files you created unless asked to keep them.
 - Update docs your change made wrong; don't invent new docs.
 - Run the repo's existing formatter on files you touched (don't invent a formatter config).

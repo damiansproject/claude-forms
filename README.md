@@ -13,6 +13,7 @@ Policy sources: [Prompting Claude Opus 5](https://platform.claude.com/docs/en/bu
 | Over-scoping / unrequested refactors | Session + prompt reminders | — |
 | In-scope overbuild (exceeds live precedent) | Ask-before-escalate checkpoint (policy, skills, session inject) | — |
 | Fortress code / unrequested robustness | Hygiene section (robustness on request); effort guidance | — |
+| Brittle minimal code (bad edges, cast stacks, no tests, prose-in-code) | Craft rules in Hygiene + Stop finish reminder | — |
 | Patch stacks / leftover one-offs / stale docs / unformatted edits | Hygiene section + Stop finish reminder | — |
 | Reinvent / ignore existing code | Search-before-write skill + warn on new `Write` with zero reads | Optional deny (`CLAUDE_FORM_STRICT_SEARCH=1`) |
 | Hallucinated progress | Stop / finish reminder (once per session) | — |
